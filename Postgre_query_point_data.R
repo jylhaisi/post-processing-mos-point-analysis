@@ -1,6 +1,6 @@
 # This script initializes interfaces to various databases, can be used to read in data and in MOS training/analysis.
 rm(list=ls())
-
+#aa
 # # Käytetäänkö lentosäähavaintoja vai jotain muuta
 # onko_lentosaahavaintoja=0
 # Kuinka monta ennuste-havaintoparia täytyy olla tilastollisten mallien fittaamiseen
