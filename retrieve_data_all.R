@@ -32,7 +32,4 @@ retrieve_data_all <- function(variable_list,station_list_retrieved,timestamps_se
   
   print("Terve!")
   invisible(all_retrieved_data)
-  
-  
-  
 }

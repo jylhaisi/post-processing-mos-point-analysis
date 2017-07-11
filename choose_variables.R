@@ -3,13 +3,13 @@ choose_variables <- function (variable_list,table_name,db) {
   # HERE PUT ERROR CHECK WHETHER FUNCTION ARGUMENTS ARE PROPER OR NOT!
   # AVIATION DB PARAMETERS HAVE NOT BEEN CODED AT ALL YET TO THIS SCRIPT
   
-  all_derived_variables <- rownames(all_variable_lists$all_derived_variables)[-1]
+  derived_variables_all <- rownames(all_variable_lists$derived_variables_all)[-1]
   
   # With this function the most common uses for creating variable lists are defined:
   # -predictor variable_list for MOS training (data retrieved from MOS table previ_ecmos_narrow_v). Used derived variables are included in the first argument
   # example: choose_variables(c("allmodelvars_1prec_derived_noBAD_noZW_RH2","T2^2","DECLINATION"),"previ_ecmos_narrow_v","MOS")
-  # -predictand variable_list for MOS training (data retrieved from CLDB tables measurand_id and weather_data_qc, option "both" retrieves data from both tables for the station list at question)
-  # example: choose_variables("estimated_variables","weather_data_qc","CLDB")
+  # -predictand variable_list for MOS training (data retrieved from CLDB tables observation_data_v1 and weather_data_qc, option "both" retrieves data from both tables for the station list at question). In case of table_name %in% c("weather_data_qc","both"), give variable names according to rownames(all_variable_lists[["mapping_parameters_all"]])! If you retrieve data from Finnish stations and from variables outside mapping_parameters_all (observation_data_v1), use db-specific variable numbers all_variable_lists$CLDB_observation_data_v1$measurand_id!
+  # example: choose_variables("estimated_variables","both","CLDB")
   # -DMO data from verif db (data retrieved from verif db tables "producer_station", second argument of tables indicate producers which are used)
   # example: choose_variables("estimated_variables",c("ecmwf","gem","kalmanecmwf","hirlam"),"verif")
   # -all coefficients and results from MOS_trace_v (options to choose all variables in the regression equation "all_vars" or only the variable which is estimated, "only_estimated_var"). In case table_name==MOS_trace_v and db==MOS, an additional column is added to parameter table_name which indicates the name of the MOS version which is returned. If no parameter is given (no second column exists to the argument), then all versions are returned
@@ -75,18 +75,18 @@ choose_variables <- function (variable_list,table_name,db) {
   # Those variables that are estimated
   if (variable_list[1]=="estimated_variables") {
     if (db %in% c("aviation","verif")) {
-      variable_name <- eval(subs(all_variable_lists[["mapping_parameters_estimated"]][[db]]))
+      variable_name <- eval(subs(all_variable_lists[["estimated_parameters"]][[db]]))
     }
     if (db=="MOS") {
-      variable_name <- eval(subs(all_variable_lists[["mapping_parameters_estimated"]][[paste0(db,"_",table_name)]]))
+      variable_name <- eval(subs(all_variable_lists[["estimated_parameters"]][[paste0(db,"_",table_name)]]))
     }
     if (db=="CLDB") {
       # if both Finnish and foreign CLDB data is retrieved a universal field_name is returned
       if (table_name[1]=="both") {
-        variable_name <- rownames(all_variable_lists[["mapping_parameters_estimated"]])
+        variable_name <- rownames(all_variable_lists[["estimated_parameters"]])
       }
       if (table_name[1] %in% c("measurand_id","weather_data_qc")) {
-        variable_name <- eval(subs(all_variable_lists[["mapping_parameters_estimated"]][[paste0(db,"_",table_name)]]))
+        variable_name <- eval(subs(all_variable_lists[["estimated_parameters"]][[paste0(db,"_",table_name)]]))
       }
     }
   }
@@ -188,7 +188,7 @@ choose_variables <- function (variable_list,table_name,db) {
     # Order is: surface vars, pressure level vars, time_lagged vars, derived vars.
     
     # First taking all vars among variable_name which are not non_timelagged surfacevars. Adding derived_vars to this list
-    non_surfacevars <- unique(c(variable_name[grep("_950|_925|_850|_700|_500|_M",variable_name)],all_derived_variables))
+    non_surfacevars <- unique(c(variable_name[grep("_950|_925|_850|_700|_500|_M",variable_name)],derived_variables_all))
     # Surface vars is everything else
     if (length(which(variable_name %in% non_surfacevars))>0) {
       surfacevars <- variable_name[-which(variable_name %in% non_surfacevars)]
@@ -204,8 +204,8 @@ choose_variables <- function (variable_list,table_name,db) {
     pressurelevelvars3 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_850$",variable_name)]))]
     pressurelevelvars4 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_700$",variable_name)]))]
     pressurelevelvars5 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_500$",variable_name)]))]
-    time_laggedvars <- all_derived_variables[which(all_derived_variables %in% (variable_name[grep("_M",variable_name)]))]
-    derived_vars <- all_derived_variables[which(all_derived_variables %in% variable_name & all_derived_variables %!in% (variable_name[grep("_M",variable_name)]))]
+    time_laggedvars <- derived_variables_all[which(derived_variables_all %in% (variable_name[grep("_M",variable_name)]))]
+    derived_vars <- derived_variables_all[which(derived_variables_all %in% variable_name & derived_variables_all %!in% (variable_name[grep("_M",variable_name)]))]
     # Concatenating these variable lists and removing inermediate results
     variable_name <- c(surfacevars,pressurelevelvars1,pressurelevelvars2,pressurelevelvars3,pressurelevelvars4,pressurelevelvars5,time_laggedvars,derived_vars)
     rm(non_surfacevars)
@@ -227,7 +227,7 @@ choose_variables <- function (variable_list,table_name,db) {
   # VARIABLE LISTS FOR mos_trace_v THINK THIS THROUGH AGAIN LATER...
   if (db=="MOS" & table_name[1]=="mos_trace_v") {
     if (variable_list[1]=="only_estimated_vars") {
-      variable_name <- all_variable_lists[["mapping_parameters_estimated"]][["MOS_mos_trace_v"]]
+      variable_name <- all_variable_lists[["estimated_parameters"]][["MOS_mos_trace_v"]]
     }
     if (variable_list[1]=="all_vars") {
       variable_name <- "all"

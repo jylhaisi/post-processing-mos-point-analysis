@@ -1,7 +1,7 @@
 retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_series) {
   
-  ECMWF_list <- all_variable_lists[["MOS"]]
-  all_derived_variables <- all_variable_lists[["all_derived_variables"]]
+  ECMWF <- all_variable_lists[["MOS"]]
+  derived_variables_all <- all_variable_lists[["derived_variables_all"]]
   first_date <- timestamps_series[1]
   last_date <- tail(timestamps_series,1)
   
@@ -16,7 +16,9 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   }
   
   # Generate variable list for previ_ecmos_narrow_v, which is actually retrieved.
-  # If previ_ecmos_narrow_v variable list contains RH^2/RH^3/RH^4/RH^5 (or RH from surface), make sure that RH from pressure levels (or T2 and D2 from surface) are retrieved.
+  # Including those DMO variables which are needed for the calculation of derived variables:
+  # -If previ_ecmos_narrow_v variable list contains RH^2/RH^3/RH^4/RH^5, make sure that RH from pressure levels are retrieved.
+  # -If surface RH, surface T2 and D2 are both needed
   if (sum(retrieved_vars[["table_name"]] == "previ_ecmos_narrow_v")>0) {
     retrieved_vars_previ_ecmos_narrow_v <- subset(retrieved_vars,table_name=="previ_ecmos_narrow_v")
     retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_SURF","D2",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
@@ -25,15 +27,15 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
     retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH\\^3","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
     retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH\\^4","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
   }
-  # Unique retrieved variables using database/table-specific -names
-  retrieved_vars_previ_ecmos_narrow_v <- unique(subset(ECMWF_list,variable_EC %in% retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])[c("param_id","level_value")])
-  retrieved_vars_mos_trace_v <- subset(ECMWF_list,variable_EC %in% subset(retrieved_vars,table_name=="mos_trace_v")[["variable_name"]])[c("source_param_name","level_value","step_adjustment")]
+  # Unique retrieved variables using database/table-specific -names (so not including derived variables)
+  retrieved_vars_previ_ecmos_narrow_v <- unique(subset(ECMWF,variable_EC %in% retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])[c("param_id","level_value")])
+  retrieved_vars_mos_trace_v <- subset(ECMWF,variable_EC %in% subset(retrieved_vars,table_name=="mos_trace_v")[["variable_name"]])[c("source_param_name","level_value","step_adjustment")]
 
   
   ### PREVI_ECMOS_NARROW_V ###
   
   # PARSING SQL QUERY USING FUNCTION PARAMETERS AND RETRIEVED VARIABLES LIST, NOT SORTING DATA IN DB QUERY AS IT IS FASTER TO SORT IN R
-  com_string <- paste("retrieved_data <- dbGetQuery(con1, \"select station_id, extract(hour from analysis_time) as analysis_time, ((analysis_time + interval '1 hour' * forecast_period) || ' UTC') as forecast_time, forecast_period, param_id, level_value, value from previ_ecmos_narrow_v where station_id in (",paste(station_list_retrieved,collapse=','),") and (analysis_time + interval '1 hour' * forecast_period) >= '",format(timestamps_series[1],'%Y-%m-%d %H:%M:%OS'),"' and (analysis_time + interval '1 hour' * forecast_period) <= '",format(tail(timestamps_series,1),'%Y-%m-%d %H:%M:%OS'),"' and param_id in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['param_id']])),collapse=','),") and level_value in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['level_value']])),collapse=','),") and forecast_period in (",paste(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']),collapse=','),");\")",sep="")
+  com_string <- paste("retrieved_data <- RPostgreSQL::dbGetQuery(con1, \"select station_id, extract(hour from analysis_time) as analysis_time, ((analysis_time + interval '1 hour' * forecast_period) || ' UTC') as forecast_time, forecast_period, param_id, level_value, value from previ_ecmos_narrow_v where station_id in (",paste(station_list_retrieved,collapse=','),") and (analysis_time + interval '1 hour' * forecast_period) >= '",format(timestamps_series[1],'%Y-%m-%d %H:%M:%OS'),"' and (analysis_time + interval '1 hour' * forecast_period) <= '",format(tail(timestamps_series,1),'%Y-%m-%d %H:%M:%OS'),"' and param_id in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['param_id']])),collapse=','),") and level_value in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['level_value']])),collapse=','),") and forecast_period in (",paste(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']),collapse=','),");\")",sep="")
   eval(parse(text=com_string))
   rm(com_string)
   # If no model data is available for station_list_retrieved, stop function
@@ -108,13 +110,13 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   
   
   # CALCULATING ALL DERIVED VARIABLES AND TIME-LAGGED VARIABLES
-  derived_vars_previ_ecmos_narrow_v <- intersect(unlist(subset(retrieved_vars,table_name=="previ_ecmos_narrow_v")[["variable_name"]]),rownames(all_derived_variables))
+  derived_vars_previ_ecmos_narrow_v <- intersect(unlist(subset(retrieved_vars,table_name=="previ_ecmos_narrow_v")[["variable_name"]]),rownames(derived_variables_all))
   if (length(derived_vars_previ_ecmos_narrow_v)>0) {
     
     # ADDING TIME-LAGGED VARIABLES TO DATA (CURRENTLY ONLY SUPPORTS DIFFERENCE OF ONE IN FORECAST_PERIODS)
     derived_vars_previ_ecmos_narrow_v_time_lagged <- derived_vars_previ_ecmos_narrow_v[grep("_M",derived_vars_previ_ecmos_narrow_v)]
     if (length(derived_vars_previ_ecmos_narrow_v_time_lagged)>0) {
-      previous_retrieved <- unique(all_derived_variables[match(derived_vars_previ_ecmos_narrow_v_time_lagged,rownames(all_derived_variables)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
+      previous_retrieved <- unique(derived_variables_all[match(derived_vars_previ_ecmos_narrow_v_time_lagged,rownames(derived_variables_all)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
       previous_time_step <- subset(retrieved_data, ((match(forecast_period,unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours'])) < length(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']))) & (param_id %in% as.integer(previous_retrieved[["MOS_previ_ecmos_narrow_v_param_id"]])) & (level_value %in% as.integer(previous_retrieved[["MOS_previ_ecmos_narrow_v_level"]]))))
   
       # Adding ONE forecast_step_length to forecast_period and forecast_time so that can be subtracted
@@ -135,7 +137,7 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
     # ADDING DERIVED MODEL VARIABLES TO DATA (astronomical variables are calculated later as otherwise a lot of duplicate data values would need to be stored to data matrix)
     derived_vars_previ_ecmos_narrow_v_derived <- derived_vars_previ_ecmos_narrow_v[-grep("_M",derived_vars_previ_ecmos_narrow_v)]
     if (length(derived_vars_previ_ecmos_narrow_v_derived)>0) {
-      derived_retrieved_all <- unique(all_derived_variables[match(derived_vars_previ_ecmos_narrow_v_derived,rownames(all_derived_variables)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
+      derived_retrieved_all <- unique(derived_variables_all[match(derived_vars_previ_ecmos_narrow_v_derived,rownames(derived_variables_all)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
       for (derived_var_index in seq(derived_vars_previ_ecmos_narrow_v_derived)) {
         # If derived variable is based on one single variable
         if (derived_retrieved_all[derived_var_index,"MOS_previ_ecmos_narrow_v_param_id"] != "") {
@@ -236,7 +238,7 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   retrieved_vars_previ_ecmos_narrow_v <- subset(retrieved_vars,table_name=="previ_ecmos_narrow_v")
   # These variables were actually retrieved
   all_mos_and_derived_variables <- setNames(all_variable_lists[["MOS"]][,c("variable_EC","param_id","level_value")],c("variable_name","param_id","level_value"))
-  all_mos_and_derived_variables <- rbind(all_mos_and_derived_variables,setNames(cbind(rownames(all_variable_lists[["all_derived_variables"]]),all_variable_lists[["all_derived_variables"]][c("derived_param_id","MOS_previ_ecmos_narrow_v_level")]),c("variable_name","param_id","level_value")))
+  all_mos_and_derived_variables <- rbind(all_mos_and_derived_variables,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]][c("derived_param_id","MOS_previ_ecmos_narrow_v_level")]),c("variable_name","param_id","level_value")))
   actually_retrieved_vars_previ_ecmos_narrow_v <- all_mos_and_derived_variables[row.match(unique(retrieved_data[,c("param_id","level_value")]),all_mos_and_derived_variables[,c("param_id","level_value")]),]
   removed_vars <- actually_retrieved_vars_previ_ecmos_narrow_v[which(is.na(match(actually_retrieved_vars_previ_ecmos_narrow_v[["variable_name"]],retrieved_vars_previ_ecmos_narrow_v[["variable_name"]]))),]
   retrieved_data <- retrieved_data[is.na(row.match(retrieved_data[,c("param_id","level_value")],removed_vars[,c("param_id","level_value")])),]

@@ -7,16 +7,18 @@ source("load_libraries_tables_and_open_connections.R")
 timestamps_series <- define_time_series(begin_date = "2015-12-01 00:00:00 GMT", end_date = "2016-05-01 00:00:00 GMT", interval_in_hours = 3)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
-predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
+predictor_set <- "allmodelvars_1prec_noBAD_RH2"
 derived_variables <- c("T2^2","T2^(1/2)","RH_SURF","RH_SURF^2","DECLINATION","SOL_ANGLE")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- eval(subs(all_station_lists[[station_list]]))
+station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
+max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 
 # Defining used variable_lists
 # First column indicates specific variable name in the database table indicated by the second column, third column is the database name. Shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
 # If you want to combine variables from several databases, run choose_variables several times with different parameters and combine the output.
 variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","gem","kalmanecmwf","hirlam"),"verif"))
-variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","weather_data_qc","CLDB")
+variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"))
 
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
@@ -42,10 +44,12 @@ for (station_number_index in station_numbers_indices) {
     ### RETRIEVING PREDICTOR DATA ###
     # WMO-numbers of stations which are retrieved (any wmon station list based on some criteria [such as geographical distance] can be defined here)
     station_list_retrieved <- station_numbers[c(station_number_index,station_number_index+1)]
+    station_list_retrieved <- c(1002,2943,2944,6170)
     function_arguments <- list(variable_list_predictors,station_list_retrieved,timestamps_series)
     predictor_data <- do.call(retrieve_data_all,function_arguments)
     
     # Removing all unnecessary variables in variable_list which are not present in the data
+    # EDIT THIS A LOT MORE STILL...
     # MOS: Remove those variables from variable_list which are not found in the database (always include derived variables with 7 digit-param_numbers which are calculated later)
     all_mos_and_derived_variables <- setNames(all_variable_lists[["MOS"]][,c("variable_EC","param_id","level_value")],c("variable_name","param_id","level_value"))
     all_mos_and_derived_variables <- rbind(all_mos_and_derived_variables,setNames(cbind(rownames(all_variable_lists[["all_derived_variables"]]),all_variable_lists[["all_derived_variables"]][c("derived_param_id","MOS_previ_ecmos_narrow_v_level")]),c("variable_name","param_id","level_value")))
