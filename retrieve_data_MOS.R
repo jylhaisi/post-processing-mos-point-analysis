@@ -1,9 +1,5 @@
 retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_series) {
-  
-  ECMWF <- all_variable_lists[["MOS"]]
-  derived_variables_all <- all_variable_lists[["derived_variables_all"]]
-  first_date <- timestamps_series[1]
-  last_date <- tail(timestamps_series,1)
+  # This function retrieves data from MOS db (both tables previ_ecmos_narrow_v and mos_trace_v (not coded on 120717))
   
   # Checking if arguments are correct
   retrieved_vars <- subset(variable_list,db=="MOS")
@@ -11,9 +7,16 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
     stop("no MOS vars in variable list!")
   }
   retrieved_tables <- intersect(c("previ_ecmos_narrow_v","mos_trace_v"),unique(retrieved_vars[["table_name"]]))
-  if (dim(retrieved_vars)[1] == 0) {
+  if (length(retrieved_tables) == 0) {
     stop("check table names!")
   }
+  
+  ECMWF <- all_variable_lists[["MOS"]]
+  derived_variables_all <- all_variable_lists[["derived_variables_all"]]
+  first_date <- timestamps_series[1]
+  last_date <- tail(timestamps_series,1)
+  all_retrieved_data <- vector("list",2)
+  names(all_retrieved_data) <- c("previ_ecmos_narrow_v","mos_trace_v")
   
   # Generate variable list for previ_ecmos_narrow_v, which is actually retrieved.
   # Including those DMO variables which are needed for the calculation of derived variables:
@@ -35,9 +38,9 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   ### PREVI_ECMOS_NARROW_V ###
   
   # PARSING SQL QUERY USING FUNCTION PARAMETERS AND RETRIEVED VARIABLES LIST, NOT SORTING DATA IN DB QUERY AS IT IS FASTER TO SORT IN R
-  com_string <- paste("retrieved_data <- RPostgreSQL::dbGetQuery(con1, \"select station_id, extract(hour from analysis_time) as analysis_time, ((analysis_time + interval '1 hour' * forecast_period) || ' UTC') as forecast_time, forecast_period, param_id, level_value, value from previ_ecmos_narrow_v where station_id in (",paste(station_list_retrieved,collapse=','),") and (analysis_time + interval '1 hour' * forecast_period) >= '",format(timestamps_series[1],'%Y-%m-%d %H:%M:%OS'),"' and (analysis_time + interval '1 hour' * forecast_period) <= '",format(tail(timestamps_series,1),'%Y-%m-%d %H:%M:%OS'),"' and param_id in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['param_id']])),collapse=','),") and level_value in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['level_value']])),collapse=','),") and forecast_period in (",paste(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']),collapse=','),");\")",sep="")
-  eval(parse(text=com_string))
-  rm(com_string)
+  sql_query <- paste0("select station_id, extract(hour from analysis_time) as analysis_time, ((analysis_time + interval '1 hour' * forecast_period) || ' UTC') as forecast_time, forecast_period, param_id, level_value, value from previ_ecmos_narrow_v where station_id in (",paste(station_list_retrieved,collapse=','),") and (analysis_time + interval '1 hour' * forecast_period) >= '",format(timestamps_series[1],'%Y-%m-%d %H:%M:%OS'),"' and (analysis_time + interval '1 hour' * forecast_period) <= '",format(tail(timestamps_series,1),'%Y-%m-%d %H:%M:%OS'),"' and param_id in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['param_id']])),collapse=','),") and level_value in (",paste(sort(unique(retrieved_vars_previ_ecmos_narrow_v[['level_value']])),collapse=','),") and forecast_period in (",paste(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']),collapse=','),");")
+  retrieved_data <- RPostgreSQL::dbGetQuery(con1, sql_query)
+  rm(sql_query)
   # If no model data is available for station_list_retrieved, stop function
   if (dim(retrieved_data)[1]==0) {
     stop(paste0("no model data available for station_list_retrieved ",paste(station_list_retrieved,collapse=","),"!"))
@@ -244,18 +247,15 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   retrieved_data <- retrieved_data[is.na(row.match(retrieved_data[,c("param_id","level_value")],removed_vars[,c("param_id","level_value")])),]
   rm(removed_vars)
   
-  
-  
-  
-  
-  
-  
   # Reordering data according to variable and forecast_time
   retrieved_data <- retrieved_data[order(retrieved_data$station_id,retrieved_data$analysis_time,retrieved_data$forecast_time,retrieved_data$forecast_period,retrieved_data$param_id,retrieved_data$level_value),]
   retrieved_data$value <- round(retrieved_data$value,digits=2)
   # Changing analysis_time "0" to "00"
   retrieved_data$analysis_time[which(retrieved_data$analysis_time=="0")] <- "00"
-
+  
+  all_retrieved_data[["previ_ecmos_narrow_v"]] <- retrieved_data
+  rm(retrieved_data)
+  
   # Returning
-  invisible(retrieved_data)
+  invisible(all_retrieved_data)
 }

@@ -37,6 +37,7 @@ library(insol)
 library(classInt)
 library(lubridate)
 library(smooth)
+library(pryr)
 # library(Hmisc)
 # User defined data analysis and plotting functions
 library(MOSpointutils)
@@ -45,9 +46,7 @@ library(MOSpointutils)
 load(file="../constant_lists/station_lists/read_in_station_lists.Rdata")
 load(file="../constant_lists/variable_lists/read_in_variable_lists.Rdata")
 load(file="../constant_lists/variable_lists/read_in_producer_lists.Rdata")
-
-# All producers in verif db
-verif_producers <- read.csv("../constant_lists/database_tables/verif/producers_distinct_csv.txt",sep=";",header = TRUE,stringsAsFactors = FALSE)
+load(file="../constant_lists/variable_lists/read_in_verif_lists.Rdata")
 
 # Loading updateable station location history table defining fmisid-wmon conversion. Removing all duplicate wmo numbers (preserving only the first (latest) station location). -> wmon-numbers are unique, but several fmisids can be found. Most of these stations are Finnish wmon5xxx changes to newer wmon2xxx stations (duplicated() picks older stations, match() picks newer stations)
 # This station list is not checked for location consistency between mos station locations! It is narrowed down based on requirements of pre-defined station lists.
