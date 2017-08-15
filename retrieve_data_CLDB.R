@@ -282,9 +282,12 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
 
   # SIMPLE VARIABLE CONVERSIONS
   # Converting temperature to Kelvins
-  all_retrieved_obs_data[["weather_data_qc"]][(which(as.matrix(all_retrieved_obs_data[["weather_data_qc"]]["parameter"]) %in% CLDB_mapping_parameters_all[["CLDB_weather_data_qc"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] <- all_retrieved_obs_data[["weather_data_qc"]][(which(as.matrix(all_retrieved_obs_data[["weather_data_qc"]]["parameter"]) %in% CLDB_mapping_parameters_all[["CLDB_weather_data_qc"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] + 273.15
-  all_retrieved_obs_data[["observation_data_v1"]][(which(as.matrix(all_retrieved_obs_data[["observation_data_v1"]]["measurand_id"]) %in% CLDB_mapping_parameters_all[["CLDB_observation_data_v1"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] <- all_retrieved_obs_data[["observation_data_v1"]][(which(as.matrix(all_retrieved_obs_data[["observation_data_v1"]]["measurand_id"]) %in% CLDB_mapping_parameters_all[["CLDB_observation_data_v1"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] + 273.15
-
+  if (!is.null(all_retrieved_obs_data[["weather_data_qc"]])) {
+    all_retrieved_obs_data[["weather_data_qc"]][(which(as.matrix(all_retrieved_obs_data[["weather_data_qc"]]["parameter"]) %in% CLDB_mapping_parameters_all[["CLDB_weather_data_qc"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] <- all_retrieved_obs_data[["weather_data_qc"]][(which(as.matrix(all_retrieved_obs_data[["weather_data_qc"]]["parameter"]) %in% CLDB_mapping_parameters_all[["CLDB_weather_data_qc"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] + 273.15
+  }
+  if (!is.null(all_retrieved_obs_data[["observation_data_v1"]])) {
+    all_retrieved_obs_data[["observation_data_v1"]][(which(as.matrix(all_retrieved_obs_data[["observation_data_v1"]]["measurand_id"]) %in% CLDB_mapping_parameters_all[["CLDB_observation_data_v1"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] <- all_retrieved_obs_data[["observation_data_v1"]][(which(as.matrix(all_retrieved_obs_data[["observation_data_v1"]]["measurand_id"]) %in% CLDB_mapping_parameters_all[["CLDB_observation_data_v1"]][CLDB_mapping_parameters_all[["unit"]] == "°C"])),"value"] + 273.15
+  }
 
 
 
