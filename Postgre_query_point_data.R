@@ -4,7 +4,7 @@ rm(list=ls())
 source("load_libraries_tables_and_open_connections.R")
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2015-12-01 00:00:00 GMT", end_date = "2016-05-01 00:00:00 GMT", interval_in_hours = 3)
+timestamps_series <- define_time_series(begin_date = "2017-06-01 00:00:00 GMT", end_date = "2017-06-30 23:00:00 GMT", interval_in_hours = 1)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
@@ -21,11 +21,21 @@ verif_stationtype <- "normal" # In verif db, several stationgroups exist. "norma
 variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"))
 
+# EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
+variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
+# EXAMPLE FOR RETREIEVING TEMPERATURE DATA
+station_list_retrieved <- c(2944)
+function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+retrieved_data <- do.call(retrieve_data_all,function_arguments)
+
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
 
 for (station_number_index in station_numbers_indices) {
+  
+  
+  
   
   # # DEFINE THIS RESULT PART LATER, INSIDE THE FUNCTION THAT PRODUCES ACTUAL MOS COEFFICIENTS TO A FILE
   # # This matrix contains metadata related to MOS training
