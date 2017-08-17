@@ -12,6 +12,7 @@ library(pryr)
 library(operator.tools)
 library(stringr)
 library(dplyr)
+library(tidyr)
 # Graphical packages
 library(ggplot2)
 library(gridExtra)

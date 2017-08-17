@@ -150,8 +150,8 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
     fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
 
     # For retrieved_vars with table_name %in% c("weather_data_qc","both"), db specific variable names are taken from rownames(CLDB_mapping_parameters_all). Also retrieve variables needed for the calculation of derived variables (pick by hand here those that cannot be derived from one single variable [have no number in derived_variables_all[["CLDB_weather_data_qc"]]])
-    retrieved_vars_weather_data_qc <- as.character(na.omit(CLDB_mapping_parameters_all[match(subset(retrieved_vars,table_name %in% c("weather","both"))[["variable_name"]],rownames(CLDB_mapping_parameters_all)),"CLDB_weather_data_qc"]))
-    retrieved_vars_weather_data_qc <- c(retrieved_vars_weather_data_qc,na.omit(derived_variables_all[match(subset(retrieved_vars,table_name %in% c("weather","both"))[["variable_name"]],rownames(derived_variables_all)),"CLDB_weather_data_qc"]))
+    retrieved_vars_weather_data_qc <- as.character(na.omit(CLDB_mapping_parameters_all[match(subset(retrieved_vars,table_name %in% c("weather_data_qc","both"))[["variable_name"]],rownames(CLDB_mapping_parameters_all)),"CLDB_weather_data_qc"]))
+    retrieved_vars_weather_data_qc <- c(retrieved_vars_weather_data_qc,na.omit(derived_variables_all[match(subset(retrieved_vars,table_name %in% c("weather_data_qc","both"))[["variable_name"]],rownames(derived_variables_all)),"CLDB_weather_data_qc"]))
     retrieved_vars_weather_data_qc <- paste(retrieved_vars_weather_data_qc,collapse="','")
 
     # Direct retrievals from CLDB (Oracle)
