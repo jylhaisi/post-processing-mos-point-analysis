@@ -20,10 +20,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
     
     # Sanity check for the parameters passed to the function
     if (dim(CLDB_observation_data)[1] == 0) {
-      stop("data is empty!")
+      print("data is empty!")
     }
     if (CLDB_table %!in% c("weather_data_qc","observation_data_v1")) {
-      stop("check CLDB_table!")
+      print("check CLDB_table!")
     }
     # If you speficy this function in .GlobalEnv, the following lines need to be uncommented and env = parent.frame() needs to be given in the argument list.
     # # These variables could equally well be passed as parameters, but function calls are a bit simpler by doing this way. As this function is defined in .GlobalEnv (outside function retrieve_data_CLDB), it knows nothing about the variables in the calling environment without this.
@@ -171,8 +171,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
     rm(sql_query)
 
     # Tidy up + interpolate data and assign to list returned at the end of the function
-    retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"weather_data_qc")
-    all_retrieved_obs_data[["weather_data_qc"]] <- retrieved_data
+    if (!length(retrieved_data)==FALSE) {
+      retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"weather_data_qc")
+      all_retrieved_obs_data[["weather_data_qc"]] <- retrieved_data
+    }
     rm(retrieved_data)
 
     rm(retrieved_stations)
@@ -224,8 +226,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
       retrieved_data <- dbGetQuery(con1, sql_query)
       rm(sql_query)
       # Tidy up data and assign to list returned at the end of the function
-      retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
-      all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      if (!length(retrieved_data)==FALSE) {
+        retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
+        all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      }
       rm(retrieved_data)
     }
     # If variable list contains variables which cannot be interpolated (is not observed for every hour)
@@ -238,8 +242,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
       retrieved_data <- dbGetQuery(con1, sql_query)
       rm(sql_query)
       # Tidy up data and assign to list returned at the end of the function
-      retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
-      all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      if (!length(retrieved_data)==FALSE) {
+        retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
+        all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      }
       rm(retrieved_data)
     }
     # If the variable of interest can be interpolated and is not instantaneous temperature
@@ -261,8 +267,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
       retrieved_data <- dbGetQuery(con1, sql_query)
       rm(sql_query)
       # Tidy up data and assign to list returned at the end of the function
-      retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
-      all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      if (!length(retrieved_data)==FALSE) {
+        retrieved_data <- tidy_and_interpolate_CLDB_data(retrieved_data,"observation_data_v1")
+        all_retrieved_obs_data[["observation_data_v1"]] <- rbind(all_retrieved_obs_data[["observation_data_v1"]],retrieved_data)
+      }
       rm(retrieved_data)
     }
     rm(retrieved_hours1)

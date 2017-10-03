@@ -29,7 +29,10 @@ retrieve_data_all <- function(variable_list,station_list_retrieved,timestamps_se
   # }
   # rm(data_sources)
 
-  
-  print("Terve!")
+  if (!length(rmNullObs(all_retrieved_data))) {
+    print("List is empty!")
+  } else {
+    print("List contains values!")
+  }
   invisible(all_retrieved_data)
 }

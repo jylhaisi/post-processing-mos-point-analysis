@@ -48,6 +48,8 @@ load(file="../constant_lists/station_lists/read_in_station_lists.Rdata")
 load(file="../constant_lists/variable_lists/read_in_variable_lists.Rdata")
 load(file="../constant_lists/variable_lists/read_in_producer_lists.Rdata")
 load(file="../constant_lists/variable_lists/read_in_verif_lists.Rdata")
+load(file="../constant_lists/variable_lists/read_in_aviation_lists.Rdata")
+
 
 # Loading updateable station location history table defining fmisid-wmon conversion. Removing all duplicate wmo numbers (preserving only the first (latest) station location). -> wmon-numbers are unique, but several fmisids can be found. Most of these stations are Finnish wmon5xxx changes to newer wmon2xxx stations (duplicated() picks older stations, match() picks newer stations)
 # This station list is not checked for location consistency between mos station locations! It is narrowed down based on requirements of pre-defined station lists.
@@ -74,8 +76,8 @@ con4 <- RPostgreSQL::dbConnect(drv_psql, host = passwords[5,][1], user = passwor
 rm(passwords)
 
 
-source("choose_variables.R")
-source("retrieve_data_all.R")
-source("retrieve_data_MOS.R")
-source("retrieve_data_verif.R")
-source("retrieve_data_CLDB.R")
+source("../point_data_analysis/choose_variables.R")
+source("../point_data_analysis/retrieve_data_all.R")
+source("../point_data_analysis/retrieve_data_MOS.R")
+source("../point_data_analysis/retrieve_data_verif.R")
+source("../point_data_analysis/retrieve_data_CLDB.R")

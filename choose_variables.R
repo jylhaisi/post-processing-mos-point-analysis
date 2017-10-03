@@ -59,7 +59,7 @@ choose_variables <- function (variable_list,table_name,db) {
     # the most common combination that is used when downloading model data for MOS training
     ## mos_trace_v/MOS
     # data from MOS db table_name mos_trace_v (parameters can be either "all_vars" or "only_estimated_vars")
-    ## measurand_id/CLDB
+    ## observation_data_v1/CLDB
     # Finnish observations
     ## weather_data_qc/CLDB
     # Foreign and road weather observations
@@ -85,7 +85,7 @@ choose_variables <- function (variable_list,table_name,db) {
       if (table_name[1]=="both") {
         variable_name <- rownames(all_variable_lists[["estimated_parameters"]])
       }
-      if (table_name[1] %in% c("measurand_id","weather_data_qc")) {
+      if (table_name[1] %in% c("observation_data_v1","weather_data_qc")) {
         variable_name <- eval(subs(all_variable_lists[["estimated_parameters"]][[paste0(db,"_",table_name)]]))
       }
     }
