@@ -12,6 +12,9 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   if (length(retrieved_tables) == 0) {
     stop("check table names!")
   }
+  if (!length(tail(which((timestamps_series < Sys.time())==TRUE),1))==TRUE) {
+    stop("all time stamps are in the future! Cannot retrieve future data!")
+  }
   
   # This subfunction cleans up CLDB observation data and interpolates the timeseries. Function is defined inside retrieve_data_CLDB function as the input data columns are CLDB-specific. Neither does it need to be stored in the global environment after it has been executed.
   tidy_and_interpolate_CLDB_data <- function(CLDB_observation_data,CLDB_table) {
@@ -134,7 +137,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   CLDB_mapping_parameters_all <- all_variable_lists[["mapping_parameters_all"]]
   derived_variables_all <- all_variable_lists[["derived_variables_all"]]
   first_date <- timestamps_series[1]
-  last_date <- tail(timestamps_series,1)
+  last_date <- timestamps_series[tail(which((timestamps_series < Sys.time())==TRUE),1)]
 
   # SORTING RETRIEVED STATIONS TO FOREIGN/FINNISH
   weather_data_qc_stations <- station_list_retrieved[station_list_retrieved<2700 | station_list_retrieved>3000]

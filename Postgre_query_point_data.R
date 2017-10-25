@@ -10,7 +10,7 @@ source("load_libraries_tables_and_open_connections.R")
 
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2017-06-25 00:00:00 GMT", end_date = "2017-06-30 21:00:00 GMT", interval_in_hours = 1)
+timestamps_series <- define_time_series(begin_date = "2017-11-14 00:00:00 GMT", end_date = "2017-11-20 21:00:00 GMT", interval_in_hours = 1)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
@@ -33,6 +33,7 @@ variable_list_predictands_all <- variable_list_predictands <- rbind(choose_varia
 
 ##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
 # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
+variable_list_predictands_all <- variable_list_predictands <- choose_variables(c("56","73"),"observation_data_v1","CLDB")
 variable_list_retrieved <- rbind(choose_variables(c("270"),"observation_data_v1","CLDB"))
 station_list_retrieved <- 2974 #all_station_lists[["all_stations_realtime"]]
 function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)

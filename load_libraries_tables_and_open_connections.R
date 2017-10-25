@@ -58,7 +58,7 @@ station_idt_conversion <- station_idt_conversion[!duplicated(station_idt_convers
 
 
 # Initializing connections to different databases. Establishing db driver, defining max number of rows which can be fetched
-drv_psql <- dbDriver("PostgreSQL",fetch.default.rec=100000000)
+drv_psql <- dbDriver("PostgreSQL",fetch.default.rec=100000000, max.con=25)
 drv_ora <- dbDriver("Oracle")
 passwords <- read.csv("/data/statcal/infofiles_etc/passwords.txt",header=TRUE,stringsAsFactors = FALSE)
 # Read-only MOS
