@@ -40,6 +40,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
     names(CLDB_observation_data) <- c("station_id","obstime","parameter","value")
     # Changing fmisid-numbers to wmon-numbers
     CLDB_observation_data[["station_id"]] <- retrieved_stations[match(CLDB_observation_data[["station_id"]],retrieved_stations[["fmisid"]]),"wmon"]
+    CLDB_observation_data <- na.omit(CLDB_observation_data)
     # Removing missing values (some of these are also contained in the database)
     CLDB_observation_data <- CLDB_observation_data[!is.na(CLDB_observation_data$value),]
     CLDB_observation_data <- CLDB_observation_data[which(CLDB_observation_data$value!="nan"),]
@@ -140,17 +141,37 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   last_date <- timestamps_series[tail(which((timestamps_series < Sys.time())==TRUE),1)]
 
   # SORTING RETRIEVED STATIONS TO FOREIGN/FINNISH
-  weather_data_qc_stations <- station_list_retrieved[station_list_retrieved<2700 | station_list_retrieved>3000]
-  observation_data_v1_stations <- subset(station_list_retrieved,station_list_retrieved %!in% weather_data_qc_stations)
+  if (station_list_retrieved!="all_stations") {
+    weather_data_qc_stations <- station_list_retrieved[station_list_retrieved<2700 | station_list_retrieved>3000]
+    observation_data_v1_stations <- subset(station_list_retrieved,station_list_retrieved %!in% weather_data_qc_stations)
+  } else {
+    weather_data_qc_stations <- station_list_retrieved
+    observation_data_v1_stations <- station_list_retrieved
+  }
+  
 
   # Q <- dbGetQuery(con3,"select lpnn,dayx,tday,rrday from daily_qc where lpnn=301 order by lpnn,dayx")
 
   # WEATHER_DATA_QC
   # This view has foreign observations but also some finnish ones. Only retrieve foreign data. In view WEATHER_QC (and WEATHER_DATA_QC) flags >=6 are not shown in retrievals. So there's no need to use conditional retrieval of the observations based on "suitable" flags.
   if ((sum(!is.na(match(retrieved_tables,c("weather_data_qc","both"))))>0) & (length(weather_data_qc_stations)>0)) {
-    # These station numbers are retrieved
-    retrieved_stations <- subset(station_idt_conversion, wmon %in% weather_data_qc_stations)
-    fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
+    # These station numbers are retrieved (generating string which is then incorporated to sql_query)
+    if (weather_data_qc_stations != "all_stations") {
+      retrieved_stations <- subset(station_idt_conversion, wmon %in% weather_data_qc_stations)
+      fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
+      fmisids <- paste0("fmisid in (",fmisids,") and ")
+    } else {
+      # Include all stations for later inspection, only remove those duplicate fmisid numbers. With the expection of stations 2879 and 2932, all duplicate wmon numbers are those Finnish ones with 5xxx number, so always remove the later one (the duplicate)
+      retrieved_stations <- station_idt_conversion
+      if (sum(retrieved_stations$wmon %in% c(2148,2172))>0) {
+        retrieved_stations <- retrieved_stations[-which(retrieved_stations$wmon %in% c(2148,2172)),]
+      }
+      while (sum(duplicated(retrieved_stations$fmisid))>0) {
+        retrieved_stations <- retrieved_stations[-which(duplicated(retrieved_stations$fmisid)),]
+      }
+      fmisids <- paste0("")
+    }
+    
 
     # For retrieved_vars with table_name %in% c("weather_data_qc","both"), db specific variable names are taken from rownames(CLDB_mapping_parameters_all). Also retrieve variables needed for the calculation of derived variables (pick by hand here those that cannot be derived from one single variable [have no number in derived_variables_all[["CLDB_weather_data_qc"]]])
     retrieved_vars_weather_data_qc <- as.character(na.omit(CLDB_mapping_parameters_all[match(subset(retrieved_vars,table_name %in% c("weather_data_qc","both"))[["variable_name"]],rownames(CLDB_mapping_parameters_all)),"CLDB_weather_data_qc"]))
@@ -161,7 +182,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
 
     # Older retrievals from MOS db (PostgreSQL)
     # This query groups results based on even-hour -rounded obstime (even-hour observation is average of all values which are rounded to that even-hour)
-    sql_query <- paste0("select fmisid as station_id, ((date_trunc('day',obstime) + interval '1 hour' * round( (date_part('hour',obstime) + date_part('minute',obstime)/60) / 1)) || ' UTC') as nearest_1, parameter, round(avg(value)::DECIMAL,1) as avg_value from weather_data_qc where fmisid in (",fmisids,") and parameter in ('",retrieved_vars_weather_data_qc,"') and obstime>='",first_date,"' and obstime<='",last_date,"' group by fmisid,parameter,nearest_1 order by fmisid,parameter,nearest_1;")
+    sql_query <- paste0("select fmisid as station_id, ((date_trunc('day',obstime) + interval '1 hour' * round( (date_part('hour',obstime) + date_part('minute',obstime)/60) / 1)) || ' UTC') as nearest_1, parameter, round(avg(value)::DECIMAL,1) as avg_value from weather_data_qc where ",fmisids,"parameter in ('",retrieved_vars_weather_data_qc,"') and obstime>='",first_date,"' and obstime<='",last_date,"' group by fmisid,parameter,nearest_1 order by fmisid,parameter,nearest_1;")
     # # This query rounds obstime to nearest hour and calculates difference of obstime to it
     # max_diff_in_minutes <- 30
     # sql_query <- paste0("select (obstime || ' UTC') as obstime, ((date_trunc('day',obstime) + interval '1 hour' * round( (date_part('hour',obstime) + date_part('minute',obstime)/60) / 1)) || 'UTC') as nearest_1, (@extract(epoch from(obstime - (date_trunc('day',obstime) + interval '1 hour' * round( (date_part('hour',obstime) + date_part('minute',obstime)/60) / 1))))/60) as abs_diff_in_minutes, value from weather_data_qc where fmisid in (",fmisids,") and parameter in ('",retrieved_vars_weather_data_qc,"') and obstime>='",first_date,"' and obstime<='",last_date,"' and (@extract(epoch from(obstime - (date_trunc('day',obstime) + interval '1 hour' * round( (date_part('hour',obstime) + date_part('minute',obstime)/60) / 1))))/60) < ",max_diff_in_minutes," order by obstime, nearest_1, abs_diff_in_minutes;")
@@ -189,9 +210,24 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
 
   # FINNISH DATA (observation_data_v1)
   if (sum(!is.na(match(retrieved_tables,c("observation_data_v1","both"))))>0 & (length(observation_data_v1_stations)>0)) {
-    # These station numbers are retrieved
-    retrieved_stations <- subset(station_idt_conversion, wmon %in% observation_data_v1_stations)
-    fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
+    # These station numbers are retrieved (generating string which is then incorporated to sql_query)
+    if (observation_data_v1_stations != "all_stations") {
+      retrieved_stations <- subset(station_idt_conversion, wmon %in% observation_data_v1_stations)
+      fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
+      fmisids <- paste0("fmisid in (",fmisids,") and ")
+    } else {
+      # Include all stations for later inspection, only remove those duplicate fmisid numbers. With the expection of stations 2879 and 2932, all duplicate wmon numbers are those Finnish ones with 5xxx number, so always remove the later one (the duplicate)
+      retrieved_stations <- station_idt_conversion
+      if (sum(retrieved_stations$wmon %in% c(2148,2172))>0) {
+        retrieved_stations <- retrieved_stations[-which(retrieved_stations$wmon %in% c(2148,2172)),]
+      }
+      while (sum(duplicated(retrieved_stations$fmisid))>0) {
+        retrieved_stations <- retrieved_stations[-which(duplicated(retrieved_stations$fmisid)),]
+      }
+      fmisids <- paste0("")
+    }
+    
+    
 
     # Defining retrieved variable numbers using database/table-specific -names
     # If data is retrieved from both tables, use variable numbers mapped from CLDB_mapping_parameters_all[["CLDB_observation_data_v1"]]
@@ -223,7 +259,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
     # If the variable of interest is instantaneous temperature
     if ("1" %in% retrieved_vars_observation_data_v1) {
       # Fetching observations done both at sharp and 20 to observation hours. Some manual stations report 20to observations 19to.
-      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in (1) THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where station_id in (",fmisids,") and measurand_id in ('1') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and ((extract(hour from data_time) :: bigint) in (",retrieved_hours1,") and (extract(minute from data_time) :: bigint) in (0) or (extract(hour from data_time) :: bigint) in (",retrieved_hours2,") and (extract(minute from data_time) :: bigint) in (40,41)) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
+      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in (1) THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where ",fmisids,"measurand_id in ('1') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and ((extract(hour from data_time) :: bigint) in (",retrieved_hours1,") and (extract(minute from data_time) :: bigint) in (0) or (extract(hour from data_time) :: bigint) in (",retrieved_hours2,") and (extract(minute from data_time) :: bigint) in (40,41)) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
       # # This query below is the old one. It returns the same data as the above query.
       # sql_query <- paste0("retrieved_data_Finnish <- dbSendQuery(con1, \"select (data_time || ' UTC') as obstime, data_value as value from observation_data_v1 where station_id in (",station_idt_conversion$fmisid[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],") and measurand_id in (",sel_CLDB,") and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and ((extract(hour from data_time) :: bigint) in (",retrieved_hours1,") and (extract(minute from data_time) :: bigint) in (0) or (extract(hour from data_time) :: bigint) in (",retrieved_hours2,") and (extract(minute from data_time) :: bigint) in (40,41)) order by obstime, data_value;\")",sep="")
       retrieved_data <- dbGetQuery(con1, sql_query)
@@ -240,7 +276,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
       retrieved_variables <- subset(retrieved_vars_observation_data_v1,as.numeric(retrieved_vars_observation_data_v1) %in% all_variable_lists[["CLDB_observation_data_v1_not_interpolated"]])
       retrieved_variables <- paste(retrieved_variables,collapse="','")
       # This query groups values for every hour by taking the average of all values of that specific hour
-      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in ('",retrieved_variables,"') THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where station_id in (",fmisids,") and measurand_id in ('",retrieved_variables,"') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and (extract(minute from data_time) :: bigint) in (0) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
+      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in ('",retrieved_variables,"') THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where ",fmisids,"measurand_id in ('",retrieved_variables,"') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and (extract(minute from data_time) :: bigint) in (0) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
       rm(retrieved_variables)
       retrieved_data <- dbGetQuery(con1, sql_query)
       rm(sql_query)
@@ -257,7 +293,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
       retrieved_variables <- paste(retrieved_variables,collapse="','")
 
       # This query groups values for every hour by taking the average of all values of that specific hour
-      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in ('",retrieved_variables,"') THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where station_id in (",fmisids,") and measurand_id in ('",retrieved_variables,"') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and (extract(minute from data_time) :: bigint) in (0) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
+      sql_query <- paste0("select station_id, (data_time || ' UTC') as obstime, measurand_id, round(AVG(CASE WHEN measurand_id in ('",retrieved_variables,"') THEN data_value END)::DECIMAL,1) AS value from observation_data_v1 where ",fmisids,"measurand_id in ('",retrieved_variables,"') and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' and (extract(minute from data_time) :: bigint) in (0) group by station_id,measurand_id,obstime order by station_id,measurand_id,obstime;")
       # # This query fetches the minimum value of the instantaneous values of the previous hour (these do not capture actual observed minimums as instantaneous values are sampled only every 10mins in the database) So: DON'T USE THIS!
       # sql_query <- paste("retrieved_data_Finnish <- dbSendQuery(con1, \"select ((date_trunc('day',data_time) + interval '1 hour' * ceil( (date_part('hour',data_time) + date_part('minute',data_time)/60) / 1)) || ' UTC') as obstime, round(min(data_value)::DECIMAL,1) AS value from observation_data_v1 where station_id in (",station_idt_conversion$fmisid[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],") and measurand_id in (1) and measurand_no=1 and data_time>='",first_date,"' and data_time<='",last_date,"' group by obstime order by obstime;\")",sep="")
       # # This query fetches the minimum value of the minimum hourly values of the same day (1801UTC ... 1800UTC). This NEATLY corresponds to daily min values in MOST cases. So: USE THIS IF YOU WANT!

@@ -1,5 +1,7 @@
 retrieve_data_all <- function(variable_list,station_list_retrieved,timestamps_series) {
   
+  # It is currently possible to use "all_stations" as an input parameter for the station_list_retrieved, but it only works for the CLDB retrievals
+  
   # Define empty list where data from individual databases is stored and returned at the end of the function
   all_retrieved_data <- vector("list",4)
   names(all_retrieved_data) <- c("MOS","verif","CLDB","aviation")
@@ -7,7 +9,7 @@ retrieve_data_all <- function(variable_list,station_list_retrieved,timestamps_se
   # These unique data sources are in predictor list
   data_sources <- as.list(intersect(c("MOS","verif","CLDB","aviation"),unique(variable_list[["db"]])))
   
-  if (length(data_sources)==0 | sum(is.numeric(station_list_retrieved))==0 | length(timestamps_series)==0) {
+  if (length(data_sources)==0 | length(station_list_retrieved)==0 | length(timestamps_series)==0) {
     stop("check arguments, no data to be fetched!")
   }
   

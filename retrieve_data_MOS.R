@@ -228,11 +228,11 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
 
   
   
-  # FOR DEVELOPMENT EXPERIMENT: REMOVE VARIABLES FROM THE DATA
-  retrieved_data <- subset(retrieved_data,param_id!=200153)
-  retrieved_data <- subset(retrieved_data,param_id!=174)
-  retrieved_data <- subset(retrieved_data,param_id!=171)
-  retrieved_data <- subset(retrieved_data,param_id!=163)
+  # # FOR DEVELOPMENT EXPERIMENT: REMOVE VARIABLES FROM THE DATA
+  # retrieved_data <- subset(retrieved_data,param_id!=200153)
+  # retrieved_data <- subset(retrieved_data,param_id!=174)
+  # retrieved_data <- subset(retrieved_data,param_id!=171)
+  # retrieved_data <- subset(retrieved_data,param_id!=163)
   
   
   

@@ -39,6 +39,7 @@ library(classInt)
 library(lubridate)
 library(smooth)
 library(pryr)
+require(geosphere)
 # library(Hmisc)
 # User defined data analysis and plotting functions
 library(MOSpointutils)
