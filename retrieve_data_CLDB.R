@@ -141,12 +141,12 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   last_date <- timestamps_series[tail(which((timestamps_series < Sys.time())==TRUE),1)]
 
   # SORTING RETRIEVED STATIONS TO FOREIGN/FINNISH
-  if (station_list_retrieved!="all_stations") {
-    weather_data_qc_stations <- station_list_retrieved[station_list_retrieved<2700 | station_list_retrieved>3000]
-    observation_data_v1_stations <- subset(station_list_retrieved,station_list_retrieved %!in% weather_data_qc_stations)
-  } else {
+  if (sum(station_list_retrieved == "all_stations")>0) {
     weather_data_qc_stations <- station_list_retrieved
     observation_data_v1_stations <- station_list_retrieved
+  } else {
+    weather_data_qc_stations <- station_list_retrieved[station_list_retrieved<2700 | station_list_retrieved>3000]
+    observation_data_v1_stations <- subset(station_list_retrieved,station_list_retrieved %!in% weather_data_qc_stations)
   }
   
 
@@ -156,7 +156,7 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   # This view has foreign observations but also some finnish ones. Only retrieve foreign data. In view WEATHER_QC (and WEATHER_DATA_QC) flags >=6 are not shown in retrievals. So there's no need to use conditional retrieval of the observations based on "suitable" flags.
   if ((sum(!is.na(match(retrieved_tables,c("weather_data_qc","both"))))>0) & (length(weather_data_qc_stations)>0)) {
     # These station numbers are retrieved (generating string which is then incorporated to sql_query)
-    if (weather_data_qc_stations != "all_stations") {
+    if (sum(weather_data_qc_stations != "all_stations")>0) {
       retrieved_stations <- subset(station_idt_conversion, wmon %in% weather_data_qc_stations)
       fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
       fmisids <- paste0("fmisid in (",fmisids,") and ")
@@ -211,10 +211,10 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
   # FINNISH DATA (observation_data_v1)
   if (sum(!is.na(match(retrieved_tables,c("observation_data_v1","both"))))>0 & (length(observation_data_v1_stations)>0)) {
     # These station numbers are retrieved (generating string which is then incorporated to sql_query)
-    if (observation_data_v1_stations != "all_stations") {
+    if (sum(observation_data_v1_stations != "all_stations")>0) {
       retrieved_stations <- subset(station_idt_conversion, wmon %in% observation_data_v1_stations)
       fmisids <- paste(retrieved_stations[["fmisid"]],collapse=",")
-      fmisids <- paste0("fmisid in (",fmisids,") and ")
+      fmisids <- paste0("station_id in (",fmisids,") and ")
     } else {
       # Include all stations for later inspection, only remove those duplicate fmisid numbers. With the expection of stations 2879 and 2932, all duplicate wmon numbers are those Finnish ones with 5xxx number, so always remove the later one (the duplicate)
       retrieved_stations <- station_idt_conversion
