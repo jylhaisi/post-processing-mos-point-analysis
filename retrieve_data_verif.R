@@ -133,5 +133,12 @@ retrieve_data_verif <- function(variable_list,station_list_retrieved,timestamps_
   rm(first_date)
   rm(last_date)
   rm(retrieved_stations)
+  
+  # Changing level_value from integer to character
+  if (!is.null(all_retrieved_verif_data)) {
+    all_retrieved_verif_data$forecast_period <- as.character(all_retrieved_verif_data$forecast_period)
+    all_retrieved_verif_data$id <- as.character(all_retrieved_verif_data$id)
+  }
+  
   invisible(all_retrieved_verif_data)
 }

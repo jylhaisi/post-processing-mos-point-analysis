@@ -6,7 +6,7 @@ source("load_libraries_tables_and_open_connections.R")
 # WHEN MAKING THIS SCRIPT INTO A FUNCTION, MAKE POSSIBLE TO GIVE STATION NUMBERS OR STATION LISTS AS ARGUMENTS
 # DERIVED VARIABLES: IS ONLY SUPPORTED CURRENTLY FOR MOS VARIABLES. CLDB/VERIF VARIABLES CANNOT BE DERIVED ATM. DERIVED VARIABLES WITH 8-DIGIT PARAMETER NUMBER (E.G. ASTRONOMICAL VARIABLES) ARE FORMED LATER IN EXECUTION WHEN FORMING MODEL-OBSPAIRS AND ARE NOT STORED IN MOS DATA FRAMES!
 # KNOWN ISSUES: TAMINDAILY -RETRIEVAL AND OTHER DERIVED VARS NEED TO BE CHANGED SO THAT DERIVED_VARIABLE NAME IS CHANGED INSTEAD OF DB-SPECIFIC NAME
-# RETRIEVE DATA FROM "ALL" STATIONS HAS NOT BEEN CODED YET! CURRENTLY STATION DATA FROM CLDB IS RETRIEVED BASED ON WMON LIST AND NOT ALL STATIONS CAN BE RETRIEVED!!! THIS HAS A 1000 STATION LIMIT...
+# CREATE A FUNCTION THAT "MELTS" "observation_data_v1" and "weather_data_qc" FROM CLDB LIST INTO A COMMON DATA FRAME!
 
 
 # User-defined variables
@@ -14,7 +14,7 @@ timestamps_series <- define_time_series(begin_date = "2017-10-14 00:00:00 GMT", 
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
-derived_variables <- c("T2^2","T2^(1/2)","RH_SURF","RH_SURF^2","DECLINATION","SOL_ANGLE")
+derived_variables <- c("T2_2","T2_0.5","RH_SURF","RH_SURF_2","DECLINATION","SOL_ANGLE")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
 station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists

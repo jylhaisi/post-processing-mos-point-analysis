@@ -344,8 +344,12 @@ retrieve_data_CLDB <- function(variable_list,station_list_retrieved,timestamps_s
 
 
 
-
-
-
+  # Changing level_value from integer to character
+  if (!is.null(all_retrieved_obs_data[["weather_data_qc"]])) {
+    all_retrieved_obs_data$weather_data_qc$parameter <- as.character(all_retrieved_obs_data$weather_data_qc$parameter)
+  }
+  if (!is.null(all_retrieved_obs_data[["observation_data_v1"]])) {
+    all_retrieved_obs_data$observation_data_v1$measurand_id <- as.character(all_retrieved_obs_data$observation_data_v1$measurand_id)
+  }
   invisible(all_retrieved_obs_data)
 }
