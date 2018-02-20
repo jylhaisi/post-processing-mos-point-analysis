@@ -3,7 +3,7 @@
 # We retieve the observation data from Climate Database, CLDB,  and the model data from Model Output Statistics, MOS.
 # This script initializes interfaces to various databases that can be used to retrieve the observation and model data
 # and also to implement the MOS training/analysis.
-
+# test line
 
 # Removing old lists
 rm(list=ls())
