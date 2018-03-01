@@ -10,7 +10,7 @@ source("load_libraries_tables_and_open_connections.R")
 
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2017-10-14 00:00:00 GMT", end_date = "2017-10-20 21:00:00 GMT", interval_in_hours = 3)
+timestamps_series <- define_time_series(begin_date = "2010-10-14 00:00:00 GMT", end_date = "2017-10-20 21:00:00 GMT", interval_in_hours = 3)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
@@ -48,6 +48,14 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # station_list_retrieved <- station_list_retrieved$station_id
 # function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
 # retrieved_data <- do.call(retrieve_data_all,function_arguments)
+
+##### EXAMPLE FOR RETRIEVING ONLY PRECIPITATION FROM CLDB
+variable_list_retrieved <- rbind(choose_variables(c("1","61","62","63","64","65","175","315","368"),"observation_data_v1","CLDB"))
+station_list_retrieved <- 2876 #all_station_lists[["all_stations_realtime"]]
+station_list_retrieved <- station_list_retrieved
+station_list_retrieved <- station_list_retrieved$station_id
+function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+retrieved_data <- do.call(retrieve_data_all,function_arguments)
 
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
