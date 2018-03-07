@@ -1,7 +1,7 @@
 # This script initializes interfaces to various databases, can be used to read in data and in MOS training/analysis.
 rm(list=ls())
 # Reading in the required packages, mapping lists and functions
-source("load_libraries_tables_and_open_connections.R")
+source("../point_data_analysis/load_libraries_tables_and_open_connections.R")
 
 # WHEN MAKING THIS SCRIPT INTO A FUNCTION, MAKE POSSIBLE TO GIVE STATION NUMBERS OR STATION LISTS AS ARGUMENTS
 # DERIVED VARIABLES: IS ONLY SUPPORTED CURRENTLY FOR MOS VARIABLES. CLDB/VERIF VARIABLES CANNOT BE DERIVED ATM. DERIVED VARIABLES WITH 8-DIGIT PARAMETER NUMBER (E.G. ASTRONOMICAL VARIABLES) ARE FORMED LATER IN EXECUTION WHEN FORMING MODEL-OBSPAIRS AND ARE NOT STORED IN MOS DATA FRAMES!

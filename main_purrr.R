@@ -52,7 +52,7 @@ station_variables <- 4 # station_id, season, analysis_time, and forecast_time
 # All helper functions for data manipulation and linear regression. These functions are to be integrated to MosPointUtils
 
 
-source("/data/daniel/statcal/R_projects/ld_playground/lr_model_training/functions_purrr.R")
+source("functions_purrr.R")
 station_list_retrieved <- c(2974)
 #for (station_id in station_list_retrieved) {}
 #for (station_id in station_list_retrieved) { 
