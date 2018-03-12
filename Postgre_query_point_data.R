@@ -22,7 +22,9 @@ max_interpolate_gap <- 6 # This indicates the maximum time in hours to which obs
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
 
 # Defining used variable_lists
-# First column indicates specific variable name in the database table indicated by the second column, third column is the database name. Shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
+# First column indicates specific variable name in the database table indicated by the second column, third column is the database name.
+# Varibles shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
+# For MOS db table MOS_trace_v, data can be fetched either from only the target_param_name (use table_name MOS_trace_v) or also from source_param_name and weight (use table_name MOS_trace_v_all).
 # If you want to combine variables from several databases, run choose_variables several times with different parameters and combine the output.
 variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
 variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
@@ -33,13 +35,13 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 
 
 
-# ##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
-# # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
-# variable_list_predictands_all <- variable_list_predictands <- choose_variables(c("56","73"),"observation_data_v1","CLDB")
-# variable_list_retrieved <- rbind(choose_variables(c("270"),"observation_data_v1","CLDB"))
-# station_list_retrieved <- 2974 #all_station_lists[["all_stations_realtime"]]
-# function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
-# retrieved_data <- do.call(retrieve_data_all,function_arguments)
+##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
+# variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
+variable_list_predictands_all <- variable_list_predictands <- choose_variables(c("56","73"),"observation_data_v1","CLDB")
+variable_list_retrieved <- rbind(choose_variables(c("270"),"observation_data_v1","CLDB"))
+station_list_retrieved <- 2974 #all_station_lists[["all_stations_realtime"]]
+function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+retrieved_data <- do.call(retrieve_data_all,function_arguments)
 # 
 # ##### EXAMPLE FOR RETRIEVING ONLY WIND FROM CLDB
 # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables(c("2","13"),"ecmwf","verif"))
@@ -49,13 +51,13 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
 # retrieved_data <- do.call(retrieve_data_all,function_arguments)
 
-##### EXAMPLE FOR RETRIEVING ONLY PRECIPITATION FROM CLDB
-variable_list_retrieved <- rbind(choose_variables(c("1","61","62","63","64","65","175","315","368"),"observation_data_v1","CLDB"))
-station_list_retrieved <- 2876 #all_station_lists[["all_stations_realtime"]]
-station_list_retrieved <- station_list_retrieved
-station_list_retrieved <- station_list_retrieved$station_id
-function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
-retrieved_data <- do.call(retrieve_data_all,function_arguments)
+# ##### EXAMPLE FOR RETRIEVING ONLY PRECIPITATION FROM CLDB
+# variable_list_retrieved <- rbind(choose_variables(c("1","61","62","63","64","65","175","315","368"),"observation_data_v1","CLDB"))
+# station_list_retrieved <- 2876 #all_station_lists[["all_stations_realtime"]]
+# station_list_retrieved <- station_list_retrieved
+# station_list_retrieved <- station_list_retrieved$station_id
+# function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+# retrieved_data <- do.call(retrieve_data_all,function_arguments)
 
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
