@@ -1,7 +1,7 @@
 # This script initializes interfaces to various databases, can be used to read in data and in MOS training/analysis.
 rm(list=ls())
 # Reading in the required packages, mapping lists and functions
-source("../point_data_analysis/load_libraries_tables_and_open_connections.R")
+source("load_libraries_tables_and_open_connections.R")
 
 # WHEN MAKING THIS SCRIPT INTO A FUNCTION, MAKE POSSIBLE TO GIVE STATION NUMBERS OR STATION LISTS AS ARGUMENTS
 # DERIVED VARIABLES: IS ONLY SUPPORTED CURRENTLY FOR MOS VARIABLES. CLDB/VERIF VARIABLES CANNOT BE DERIVED ATM. DERIVED VARIABLES WITH 8-DIGIT PARAMETER NUMBER (E.G. ASTRONOMICAL VARIABLES) ARE FORMED LATER IN EXECUTION WHEN FORMING MODEL-OBSPAIRS AND ARE NOT STORED IN MOS DATA FRAMES!
@@ -20,6 +20,9 @@ station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals ar
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
+output_dir <- "/data/daniel/statcal/R_projects/ld_playground/lr_model_training/test" 
+max_variables <- 10
+fitting.method  <- "GlmnR1"
 
 # Defining used variable_lists
 # First column indicates specific variable name in the database table indicated by the second column, third column is the database name.
@@ -35,13 +38,13 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 
 
 
-##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
-# variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
-variable_list_predictands_all <- variable_list_predictands <- choose_variables(c("56","73"),"observation_data_v1","CLDB")
-variable_list_retrieved <- rbind(choose_variables(c("270"),"observation_data_v1","CLDB"))
-station_list_retrieved <- 2974 #all_station_lists[["all_stations_realtime"]]
-function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
-retrieved_data <- do.call(retrieve_data_all,function_arguments)
+# ##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
+# # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
+# variable_list_predictands_all <- variable_list_predictands <- choose_variables(c("56","73"),"observation_data_v1","CLDB")
+# variable_list_retrieved <- rbind(choose_variables(c("270"),"observation_data_v1","CLDB"))
+# station_list_retrieved <- 2974 #all_station_lists[["all_stations_realtime"]]
+# function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+# retrieved_data <- do.call(retrieve_data_all,function_arguments)
 # 
 # ##### EXAMPLE FOR RETRIEVING ONLY WIND FROM CLDB
 # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables(c("2","13"),"ecmwf","verif"))
@@ -86,7 +89,7 @@ for (station_number_index in station_numbers_indices) {
     ### RETRIEVING PREDICTAND DATA ###
     # WMO-numbers of stations which are retrieved (any wmon station list based on some criteria [such as geographical distance] can be defined here)
     # station_list_retrieved <- station_numbers[c(station_number_index,station_number_index+1)]
-    # station_list_retrieved <- c(1002,1006,2943,2944,6170)
+    # station_list_retrieved <- c(2974)
     station_list_retrieved <- station_numbers[c(station_number_index)]
     function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
     predictand_data <- do.call(retrieve_data_all,function_arguments)
@@ -97,14 +100,14 @@ for (station_number_index in station_numbers_indices) {
     # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
     # all_data <- do.call(retrieve_data_all,function_arguments)
     
-    # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
-    predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
-    predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
-    predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
-    predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
-    unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
-    rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
-    
+    # # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
+    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
+    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
+    # predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
+    # predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
+    # unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
+    # rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
+    # 
     # Removing all unnecessary variables in variable_list_predictors which are not present in the data
     # EDIT THIS A LOT MORE STILL...
     # MOS: Remove those variables from variable_list which are not found in the database
@@ -246,6 +249,14 @@ for (station_number_index in station_numbers_indices) {
     
     
     
+    # obsdata <- predictand_data$CLDB$weather_data_qc   # observation data is from observations_data_v1 of CLDB foreign sttaions
+    obsdata <- predictand_data$CLDB$observation_data_v1
+    mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
+    #station_numbers[station_number_index]
+    
+    source("functions_glm.R")
+    
+    GlmnR1_training(station_list_retrieved, obsdata, mosdata)
     
 #     # Tarkistetaan löytyykö mallidataa vai ei
 #     if (length(eval(parse(text=mallidatamatriisi))[,1])<ennuste_havaintoparien_minimimaara) {
