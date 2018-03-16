@@ -107,11 +107,10 @@ for (station_number_index in station_numbers_indices) {
     # predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
     # unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
     # rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
-    # 
-    # Removing all unnecessary variables in variable_list_predictors which are not present in the data
-    # EDIT THIS A LOT MORE STILL...
-    # MOS: Remove those variables from variable_list which are not found in the database
-    # COUNT THE NUMBER OF DIGITS IN STRING! nchar(x)<8 is not ENOUGH AS THERE IS e.g. TAMAX12H!!
+    #
+    
+    
+    # Remove those variables from variable_list which are not found in the database
     clean_variable_list <- function(variable_list_to_be_cleaned,db_data) {
       
       ### MOS -Previ_ecmos_narrow_v
@@ -124,7 +123,7 @@ for (station_number_index in station_numbers_indices) {
         # Creating removed_vars -list by subtracting down from full variable list
         removed_vars <- all_db_and_derived_vars
         # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["param_id"],function (x) nchar(x)<8),]
+        removed_vars <- removed_vars[sapply(removed_vars["param_id"],function (x) stri_count_regex(x,"[0-9]")<8),]
         # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables
         removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="MOS" & table_name=="previ_ecmos_narrow_v")["variable_name"]),removed_vars[["variable_name"]]),])
         # Narrow down removed_vars list to those which are NOT found among the retrieved vars
@@ -152,7 +151,7 @@ for (station_number_index in station_numbers_indices) {
         # Creating removed_vars -list by subtracting down from full variable list
         removed_vars <- all_db_and_derived_vars
         # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) nchar(x)<8),]
+        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) stri_count_regex(x,"[0-9]")<8),]
         # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables
         removed_vars <- na.omit(removed_vars[row.match(subset(variable_list_to_be_cleaned,db=="verif")[,c("variable_name","table_name")],removed_vars[,c("id","table_name")]),])
         # Narrow down removed_vars list to those which are NOT found among the retrieved vars
@@ -175,7 +174,7 @@ for (station_number_index in station_numbers_indices) {
         # Creating removed_vars -list by subtracting down from full variable list
         removed_vars <- all_db_and_derived_vars
         # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) nchar(x)<8),]
+        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) stri_count_regex(x,"[0-9]")<8),]
         # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
         removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="weather_data_qc")["variable_name"]),removed_vars[["variable_name"]]),])
         # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars_db
@@ -198,7 +197,7 @@ for (station_number_index in station_numbers_indices) {
         # Creating removed_vars -list by subtracting down from full variable list
         removed_vars <- all_db_and_derived_vars
         # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["measurand_id"],function (x) nchar(x)<8),]
+        removed_vars <- removed_vars[sapply(removed_vars["measurand_id"],function (x) stri_count_regex(x,"[0-9]")<8),]
         # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
         removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="observation_data_v1")["variable_name"]),removed_vars[["measurand_id"]]),])
         # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars_db
@@ -225,7 +224,7 @@ for (station_number_index in station_numbers_indices) {
         # Creating removed_vars -list by subtracting down from full variable list
         removed_vars <- all_db_and_derived_vars
         # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["weather_data_qc"],function (x) nchar(x)<8),]
+        removed_vars <- removed_vars[sapply(removed_vars["observation_data_v1"],function (x) stri_count_regex(x,"[0-9]")<8),]
         # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
         removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="both")["variable_name"]),removed_vars[["variable_name"]]),])
         # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars
