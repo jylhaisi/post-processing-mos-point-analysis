@@ -29,7 +29,10 @@ fitting.method  <- "GlmnR1"
 # Varibles shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
 # For MOS db table MOS_trace_v, data can be fetched either from only the target_param_name (use table_name MOS_trace_v) or also from source_param_name and weight (use table_name MOS_trace_v_all).
 # If you want to combine variables from several databases, run choose_variables several times with different parameters and combine the output.
-variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
+# variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
+# variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
+
+variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"mos_trace_v","MOS")
 variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 # variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"),choose_variables(c("PSEA","WS","WD"),"weather_data_qc","CLDB"))
