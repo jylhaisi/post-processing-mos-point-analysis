@@ -20,7 +20,7 @@ station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals ar
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
-output_dir <- "/data/daniel/statcal/R_projects/ld_playground/lr_model_training/test" 
+output_dir <- "/data/daniel/statcal/R_projects/ld_playground/lr_model_training/test/" 
 max_variables <- 10
 fitting.method  <- "GlmnR1"
 
@@ -96,10 +96,10 @@ for (station_number_index in station_numbers_indices) {
     station_list_retrieved <- station_numbers[c(station_number_index)]
     function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
     predictand_data <- do.call(retrieve_data_all,function_arguments)
-    ### RETRIEVING PREDICTOR DATA ###
+    # ### RETRIEVING PREDICTOR DATA ###
     function_arguments <- list(variable_list_predictors,station_list_retrieved,timestamps_series)
     predictor_data <- do.call(retrieve_data_all,function_arguments)
-    # ### RETRIEVING ALL DATA ###
+    # # ### RETRIEVING ALL DATA ###
     # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
     # all_data <- do.call(retrieve_data_all,function_arguments)
     
@@ -248,17 +248,21 @@ for (station_number_index in station_numbers_indices) {
     variable_list_predictands <- clean_variable_list(variable_list_predictands,predictand_data)
     
     
+    if (!(is.null(predictand_data$CLDB$weather_data_qc))) {  # observation data from foreign station
+          obsdata <- predictand_data$CLDB$weather_data_qc
+          station_type <- 1
+    } else {
+            obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
+            station_type <- 0
+    }
     
-    
-    
-    # obsdata <- predictand_data$CLDB$weather_data_qc   # observation data is from observations_data_v1 of CLDB foreign sttaions
-    obsdata <- predictand_data$CLDB$observation_data_v1
     mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
-    #station_numbers[station_number_index]
     
     source("functions_glm.R")
+    source("functions_glm_purrr.R")
     
-    GlmnR1_training(station_list_retrieved, obsdata, mosdata)
+    GlmnR1_training(station_list_retrieved, station_type, obsdata, mosdata)
+    GlmnR1_training_purrr(station_list_retrieved, station_type, obsdata, mosdata)
     
 #     # Tarkistetaan löytyykö mallidataa vai ei
 #     if (length(eval(parse(text=mallidatamatriisi))[,1])<ennuste_havaintoparien_minimimaara) {
