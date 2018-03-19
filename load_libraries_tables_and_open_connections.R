@@ -13,6 +13,8 @@ library(operator.tools)
 library(stringr)
 library(dplyr)
 library(tidyr)
+library(purrr)
+library(stringi)
 # Graphical packages
 library(ggplot2)
 library(gridExtra)
