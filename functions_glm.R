@@ -70,7 +70,7 @@ GlmnR1_training <- function(station_id, obsdata, mosdata, max_variables, fitting
             stn_coeffs <- results$coefficients
             coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
           }
-          print(ff)
+          # print(ff)
         }
         rm(ff)
         coefficients.station.season.atime.fperiod[is.na(coefficients.station.season.atime.fperiod)] <- 0
@@ -79,7 +79,7 @@ GlmnR1_training <- function(station_id, obsdata, mosdata, max_variables, fitting
         # Only single consecutive forecast periods are allowed missing, not two or more
         chunks <- rle(colSums(df==0)==dim(df)[1])
         if (length(which(chunks$length>1 & chunks$values==TRUE))==0) {
-          filename = paste0(output_dir,"station_",station_id,"_",aa,"_season",ss,"_",response,"_level0_",fitting.method,"_MOS_maxvars",max_variables,".csv")
+          filename = paste0(output_dir,"station_",station_id,"_",aa,"_season",ss,"_",response_name,"_level0_",fitting.method,"_MOS_maxvars",max_variables,".csv")
           write.csv(df, file=filename)
           rm(filename)
         }
