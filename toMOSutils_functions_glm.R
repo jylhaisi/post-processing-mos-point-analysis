@@ -3,6 +3,8 @@ library(lubridate)
 library(lattice)
 library(ggplot2)
 library(reshape2)
+library(purrr)
+
 
 
 # packages for different model selection algorithms
@@ -55,7 +57,7 @@ SplitYears <- function(station_id,  mos_df, obs_df) {
 
 
 
-SplitSeasons <- function(station_id,  mos_df, obs_df) {
+SplitSeasons <- function(station_id, station_type,  mos_df, obs_df) {
  # 
   #  # Args:
   #   station_id: station_id
@@ -68,33 +70,39 @@ SplitSeasons <- function(station_id,  mos_df, obs_df) {
   #   data.split: a list with mosdata and observation data split into 4 seasons
   #   		  this list contains null data for yearly mos and obs data 
   
+      
 	    mos_winter <- (mos_df %>%
                  dplyr::filter(month(forecast_time) >= 11 | month(forecast_time) <= 3) %>%
                  dplyr::select(station_id, analysis_time, forecast_time, forecast_period, param_id, level_value, value))
+	    
       obs_winter <- (obs_df %>%
                  dplyr::filter(month(obstime) >= 11 | month(obstime) <= 3) %>%
-                 dplyr::select(station_id, obstime, measurand_id, value))
+                   dplyr::select(everything())) 
+               #  dplyr::select(station_id, obstime, measurand_id, value))
 
 	    mos_spring <- (mos_df %>%
                  dplyr::filter(month(forecast_time) >= 2 & month(forecast_time) <= 6) %>%
                  dplyr::select(station_id,  analysis_time,forecast_time, forecast_period, param_id, level_value,  value))
 	    obs_spring <- (obs_df  %>%
                  dplyr::filter(month(obstime) >= 2 & month(obstime) <= 6) %>%
-                 dplyr::select(station_id, obstime, measurand_id, value))
+                   dplyr::select(everything()))  
+                 #dplyr::select(station_id, obstime, measurand_id, value))
 
 	    mos_summer <- (mos_df %>%
                  dplyr::filter(month(forecast_time) >= 5 & month(forecast_time) <= 9) %>%
                  dplyr::select(station_id, analysis_time, forecast_time, forecast_period, param_id, level_value, value))
 	    obs_summer <- (obs_df  %>%
                  dplyr::filter(month(obstime) >= 5 & month(obstime) <= 9) %>%
-                 dplyr::select(station_id, obstime, measurand_id, value))
+                  dplyr::select(everything())) 
+                  #dplyr::select(station_id, obstime, measurand_id, value))
 
 	    mos_autumn <- (mos_df %>%
                  dplyr::filter(month(forecast_time) >= 8 & month(forecast_time) <= 12) %>%
                  dplyr::select(station_id, analysis_time, forecast_time, forecast_period, param_id, level_value, value))
 	    obs_autumn <- (obs_df  %>%
                  dplyr::filter(month(obstime) >= 8  & month(obstime) <= 12) %>%
-                 dplyr::select(station_id, obstime,  measurand_id, value))
+                   dplyr::select(everything())) 
+	    #dplyr::select(station_id, obstime,  measurand_id, value))
 
       mosdata_seasons  <- list("mos_winter" = mos_winter, "mos_spring" = mos_spring, "mos_summer" = mos_summer, "mos_autumn"= mos_autumn)
 
@@ -207,24 +215,34 @@ GenerateMOSDataFrame <- function(station_id,mos_season_data) {
   return(df_mos)
 }
 
+FetchMOSDataFP <- function(df_mos, atime, fperiod) {
 
-FetchMOSDataFP <- function(station_id, atime, fperiod, mos_matrix) {
-
-  data <- (mos_matrix %>%
+  data <- (df_mos %>%
            dplyr::filter( analysis_time == atime, forecast_period == fperiod))
-
-        
+            
   return(data)         
 
+}
+
+FetchMOSDataAA <- function(df_mos, atime) {
   
+  data <- (df_mos %>%
+             dplyr::filter( analysis_time == atime))
+  
+  return(data)         
+  
+}
+
+
+FetchData_season_analysis_time <- function(station_id, station_type, atime, df_mos, obs_season_data,response) {
+  
+  
+  if (station_type == 1) {
+    param_list <- unique(obs_season_data[["parameter"]]) 
+    
+  } else {
+    param_list <- unique(obs_season_data[["measurand_id"]])
   }
-
-
-
-
-FetchData_season_analysis_time <- function(station_id, atime, df_mos, obs_season_data,response) {
-  
-  param_list <- unique(obs_season_data[["measurand_id"]])
   obs_vars <- all_variable_lists[["estimated_parameters"]]
   
   
@@ -232,14 +250,23 @@ FetchData_season_analysis_time <- function(station_id, atime, df_mos, obs_season
     if (rownames(obs_vars)[pp] != response) {
       next;
     }else { 
-      param_name <- variable_list_predictands$variable_name[pp]
-      #param_name <- obs_vars$CLDB_weather_data_qc[pp]
-      param_id  <- obs_vars$CLDB_observation_data_v1[pp]
+      if (station_type == 1) { 
+        #param_name = obs_vars$CLDB_weather_data_qc[pp]
+        param_name = response
+      } else { 
+        #param_name <- variable_list_predictands$variable_name[pp]
+        param_name= response
+        param_id  <- obs_vars$CLDB_observation_data_v1[pp]
+      }
       break;
     }
   }
   
-  df_obs <- dplyr::filter(obs_season_data, measurand_id == param_id)
+  if (station_type == 1 ) {
+      df_obs <- dplyr::filter(obs_season_data, parameter == param_name)
+  } else { 
+      df_obs <- dplyr::filter(obs_season_data, measurand_id == param_id)
+  }
   
   if (param_name == "TAMIN12H" || param_name == "TAMAX12H") {
     start <- df_obs$obstime[1]
@@ -264,12 +291,19 @@ FetchData_season_analysis_time <- function(station_id, atime, df_mos, obs_season
     df_mos_obs<- merge(df_mos, df_obs,by.x=c("forecast_time"), by.y=c("obstime"), all.x = TRUE)
     
   } else {
-    df_obs <-  dplyr::select(df_obs, -c(measurand_id))
+    if (station_type == 1) { 
+      df_obs <-  dplyr::select(df_obs, -c(parameter))
+    } else {
+      df_obs <-  dplyr::select(df_obs, -c(measurand_id))
+    }
     colnames(df_obs)[ncol(df_obs)] <- param_name
-    df_mos_obs<- merge(df_mos, df_obs,by.x=c("station_id", "forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
+    
+    df_mos_aa <- (df_mos %>%
+                    dplyr::filter(analysis_time == atime))
+    df_mos_obs<- merge(df_mos_aa, df_obs,by.x=c("station_id", "forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
   }
-  results <- list("data" = df_mos_obs, "response" = param_name)
-  return(results)
+  # results <- list("data" = df_mos_obs, "response" = param_name)
+  return(df_mos_obs)
   
   
 }
@@ -393,12 +427,12 @@ CleanData <- function(data) {
   # first we will delete faulty variables with are NA most of the time
   
   # calculating the number of NAs in variables
-  
+  # the variables are removed only if all the values are NA
   no.of.na <- apply(X = station_data[,], MARGIN = 2, FUN = function(x) sum(is.na(x)))
   
-  # na.tolerance is taken as one fourth of the observations
-  na.tolerance <- no.of.obs/ 3
-  
+  # na.tolerance is taken numer of observations
+  #na.tolerance <- no.of.obs/ 3
+  na.tolerance <- no.of.obs
   # taking only the variables that have no.of.na < na.tolerance
   good.variables <- which(no.of.na < na.tolerance)
   
@@ -542,6 +576,32 @@ FitWithGlmnR1 <- function(training.set) {
 }
 
 
+FitWithGlmnR1purrr <- function(training.set) {
+  # The Lasso regression with 11 predictors and lambda lse
+  #
+  # Args:
+  #   training.set:
+  # glmnet takes the model data and observations as arguements
+  #
+  # Returns:
+  #   A list of coefficients
+  max_variables = 10;
+  training.matrix <- as.matrix(training.set[5:ncol(training.set)])
+  glmnet.model <- suppressWarnings(glmnet(training.matrix[,-1], training.matrix[,1], family = "gaussian", alpha = 1, standardize = TRUE, pmax = max_variables+1))
+  filter.for.folds <- IndexVectorToFilter(SplitDataEvenly(training.matrix[,1]))
+  cv.glmnet.model <- suppressWarnings(cv.glmnet(training.matrix[,-1],training.matrix[,1], alpha = 1, foldid = filter.for.folds, pmax =max_variables+1))
+  best.lambda <- cv.glmnet.model$lambda.min
+  # choosing the best coefficients
+  all.coefficients <- coef(cv.glmnet.model, s = best.lambda)
+  all.coef.names <- rownames(all.coefficients)
+  nonzero.indices <- which(all.coefficients != 0)
+  coefficients <- all.coefficients[nonzero.indices]
+  names(coefficients) <- all.coef.names[nonzero.indices] 
+  
+  names(coefficients)[1] <- "Intercept"
+  results <- list("coefficients" = coefficients)
+  return(results)
+}
 
   
 FitWithGlmnM1<- function(training.set) {

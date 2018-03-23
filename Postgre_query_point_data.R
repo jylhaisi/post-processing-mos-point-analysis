@@ -10,13 +10,13 @@ source("load_libraries_tables_and_open_connections.R")
 
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2010-10-14 00:00:00 GMT", end_date = "2017-10-20 21:00:00 GMT", interval_in_hours = 3)
+timestamps_series <- define_time_series()
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- c("T2_2","T2_0.5","RH_SURF","RH_SURF_2","DECLINATION","SOL_ANGLE")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+station_numbers <- c(1406,2798) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
@@ -68,6 +68,7 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
+
 
 for (station_number_index in station_numbers_indices) {
   
@@ -258,11 +259,12 @@ for (station_number_index in station_numbers_indices) {
     
     mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
     
-    source("functions_glm.R")
+  
     source("functions_glm_purrr.R")
-    
-    GlmnR1_training(station_list_retrieved, station_type, obsdata, mosdata)
     GlmnR1_training_purrr(station_list_retrieved, station_type, obsdata, mosdata)
+    
+    # source("functions_glm.R")
+    #GlmnR1_training(station_list_retrieved, station_type, obsdata, mosdata)
     
 #     # Tarkistetaan löytyykö mallidataa vai ei
 #     if (length(eval(parse(text=mallidatamatriisi))[,1])<ennuste_havaintoparien_minimimaara) {
