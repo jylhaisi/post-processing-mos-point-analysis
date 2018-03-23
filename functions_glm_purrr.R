@@ -6,7 +6,7 @@
 
 source("toMOSutils_functions_glm.R")
 
-GlmnR1_training_purrr <- function(station_id, station_type, obsdata, mosdata) { 
+GlmnR1_training_purrr <- function(station_id, obsdata, mosdata, max_variables, fitting.method, station_type) { 
 
 # All helper functions for data manipulation and linear regression. These functions are to be integrated to MosPointUtils
 
@@ -21,13 +21,13 @@ GlmnR1_training_purrr <- function(station_id, station_type, obsdata, mosdata) {
   analysis_times <- all_producer_lists$ECMWF$analysis_times
   forecast_periods <- all_producer_lists$ECMWF$forecast_periods_hours
   
-  max_variables <- 10
-  fitting.method  <- "GlmnR1"
-  
-  data_seasons <- SplitSeasons(station_id, station_type, mosdata, obsdata) 
-  
-  
- 
+  # These functions are to be placed in MOSutils
+  source("toMOSutils_functions_glm.R")
+  # As a first thing, possibly included predictors TAMIN12H/TAMAX12H are interpolated to previous 11 hours so that further interpolation is avoided
+  obsdata <- InterpolateMinMaxValues(station_id, obsdata, station_type)
+  # Divide data into seasons
+  data_seasons <- SplitSeasons(station_id, mosdata, obsdata)
+  # CONTINUE FROM HERE!!!
   #ss <- 1
   for (ss in 1:4)  {   # Seasons winter: 1, spring: 2, Summer: 3 and autumn: 4
    

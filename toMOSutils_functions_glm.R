@@ -57,7 +57,7 @@ SplitYears <- function(station_id,  mos_df, obs_df) {
 
 
 
-SplitSeasons <- function(station_id, station_type,  mos_df, obs_df) {
+SplitSeasons <- function(station_id, mos_df, obs_df) { # function(station_id, station_type, mos_df, obs_df) {
  # 
   #  # Args:
   #   station_id: station_id
@@ -82,7 +82,7 @@ SplitSeasons <- function(station_id, station_type,  mos_df, obs_df) {
 
 	    mos_spring <- (mos_df %>%
                  dplyr::filter(month(forecast_time) >= 2 & month(forecast_time) <= 6) %>%
-                 dplyr::select(station_id,  analysis_time,forecast_time, forecast_period, param_id, level_value,  value))
+                 dplyr::select(station_id, analysis_time, forecast_time, forecast_period, param_id, level_value, value))
 	    obs_spring <- (obs_df  %>%
                  dplyr::filter(month(obstime) >= 2 & month(obstime) <= 6) %>%
                    dplyr::select(everything()))  
@@ -141,7 +141,7 @@ SplitDataEvenly <- function(timevector, folds = 4) {
 
 
 GenerateMOSDataFrame <- function(station_id,mos_season_data) { 
-  # Generate  MOS dataframe from the mosdata retrived for a particular season and for a particular analysis_time
+  # Generate MOS dataframe from the mosdata retrived for a particular season and for a particular analysis_time
   # This dataframe contains the MOS data for 00-64 forecast periods
   # station_id: station_id
   # atime: analysis_time can have values "00" and "12" UTC
@@ -157,15 +157,15 @@ GenerateMOSDataFrame <- function(station_id,mos_season_data) {
   analysis_times <- unique(mos_season_data[["analysis_time"]])
   forecast_periods <- unique(mos_season_data[["forecast_period"]])
   
-  mos_vars <- all_variable_lists[["MOS"]]                     # Getting the mos variable names  from the al_variable_lists
-  mos_D_vars <- all_variable_lists[["derived_variables_all"]] # Getting the mos derived  variable names  from the al_variable_lists
+  mos_vars <- all_variable_lists[["MOS"]]                     # Getting the mos variable names from all_variable_lists
+  mos_D_vars <- all_variable_lists[["derived_variables_all"]] # Getting the derived variable names from all_variable_lists
 
   # Finding the parameter name and its values are added to the MOS dataframe
   # loop variable is zero for the first time when the first parameter value is added to the dataframe 
   loop1 <- 0  
   for (i in 1:length(param_list)) {
       for (j in 1:length(level_list)) {
-        if ( length(param_name <- filter(mos_vars, mos_vars$param_id == as.integer(param_list[i]) & mos_vars$level_value == level_list[j])[[1]]) == 0) { 
+        if (length(param_name <- filter(mos_vars, mos_vars$param_id == as.integer(param_list[i]) & mos_vars$level_value == level_list[j])[[1]]) == 0) { 
             if (length(param_name <- row.names(mos_D_vars)[which(suppressWarnings(mos_D_vars$derived_param_id) == param_list[i] & suppressWarnings(as.integer(mos_D_vars$MOS_previ_ecmos_narrow_v_level)) == level_list[j])]) == 0) {
               next
             }
@@ -177,7 +177,7 @@ GenerateMOSDataFrame <- function(station_id,mos_season_data) {
     
         if (nrow(df) != 0) {
           names(df)[ncol(df)]<- eval(param_name)
-          if (loop1 == 0){ 
+          if (loop1 == 0) { 
             df_mos <- df
             loop1 <- 1
           } else {
@@ -188,7 +188,7 @@ GenerateMOSDataFrame <- function(station_id,mos_season_data) {
   }
     
   
-# The values of the variables SOL_ANGLE and DECLINATION are calculated and added to the MOS dataframe
+# The values of the 8-digit derived_param_id variables SOL_ANGLE and DECLINATION are calculated and added to the MOS dataframe
 
   if ("SOL_ANGLE" %in% variable_list_predictors$variable_name) { 
       declination <- -asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+
@@ -233,79 +233,95 @@ FetchMOSDataAA <- function(df_mos, atime) {
   
 }
 
-
-FetchData_season_analysis_time <- function(station_id, station_type, atime, df_mos, obs_season_data,response) {
-  
-  
+InterpolateMinMaxValues <- function(station_id, obsdata, station_type) {
   if (station_type == 1) {
-    param_list <- unique(obs_season_data[["parameter"]]) 
-    
+    param_list <- unique(obsdata[["parameter"]]) 
+    # param_ids <- rownames(all_variable_lists[["estimated_parameters"]])[match(param_list,unlist(all_variable_lists[["estimated_parameters"]]["CLDB_weather_data_qc"]))]
+    for (param_id_extr in c("TAMAX12H","TAMIN12H")) {
+      if (param_id_extr %in% param_list) {
+        obsdata <- ReturnInterpolatedMinMaxValues(obsdata,"parameter",param_id_extr)
+      }
+    }
+    rm(param_id_extr)
+  } else {
+    param_list <- unique(obsdata[["measurand_id"]])
+    # param_ids <- rownames(all_variable_lists[["estimated_parameters"]])[match(param_list,unlist(all_variable_lists[["estimated_parameters"]]["CLDB_observation_data_v1"]))]
+    for (param_id_extr in c("21","22")) {
+      if (param_id_extr %in% param_list) {
+        obsdata <- ReturnInterpolatedMinMaxValues(station_id, obsdata,"measurand_id",param_id_extr)
+      }
+    }
+    rm(param_id_extr)
+  }
+  invisible(obsdata)
+}
+
+ReturnInterpolatedMinMaxValues <- function(station_id, obsdata, column_name, param_id_extr) {
+  com_string <- paste0("df_obs <- subset(obsdata,",column_name,"==param_id_extr)")
+  eval(parse(text=com_string))
+  rm(com_string)
+  start <- df_obs$obstime[1]
+  end <- df_obs$obstime[dim(df_obs)[1]]
+  obs_interp <-  as.data.frame(cbind(seq(start, end, by="1 hour"),NA))
+  obs_interp[,1] <- seq(start, end, by="1 hour")
+  rm(start)
+  rm(end)
+  colnames(obs_interp) <- c("obstime","value")
+  
+  for (rownumber in 1:dim(obs_interp)[1]) {
+    differences_in_hours <- difftime(obs_interp$obstime[rownumber],df_obs$obstime,units="hours") #(obs_interp$obstime[rownumber] - df_obs$obstime)
+    assigned_value <- df_obs$value[head(which((differences_in_hours <= 0) & (differences_in_hours > -12)),1)]
+    if (!length(assigned_value)==FALSE) {
+      obs_interp$value[rownumber] <- assigned_value
+    }
+    rm(assigned_value)
+    rm(differences_in_hours)
+  }
+  rm(rownumber)
+  df_obs <- data.frame(station_id,obs_interp[["obstime"]],param_id_extr,obs_interp[["value"]])
+  colnames(df_obs) <- c("station_id","obstime",column_name,"value")
+  com_string <- paste0("obsdata <- subset(obsdata,",column_name,"!=param_id_extr)")
+  eval(parse(text=com_string))
+  rm(com_string)
+  obsdata <- rbind(obsdata,df_obs)
+  return(obsdata)
+}
+
+FetchData_season_analysis_time <- function(station_id, atime, df_mos, obs_season_data, response, station_type) {
+  if (station_type == 1) {
+    param_list <- unique(obs_season_data[["parameter"]])
   } else {
     param_list <- unique(obs_season_data[["measurand_id"]])
   }
   obs_vars <- all_variable_lists[["estimated_parameters"]]
-  
-  
   for (pp in 1:length(param_list)) {
     if (rownames(obs_vars)[pp] != response) {
       next;
-    }else { 
+    } else { 
       if (station_type == 1) { 
         #param_name = obs_vars$CLDB_weather_data_qc[pp]
-        param_name = response
+        param_name <- response
       } else { 
         #param_name <- variable_list_predictands$variable_name[pp]
-        param_name= response
+        param_name <- response
         param_id  <- obs_vars$CLDB_observation_data_v1[pp]
       }
       break;
     }
   }
-  
-  if (station_type == 1 ) {
+  rm(pp)
+  if (station_type == 1) {
       df_obs <- dplyr::filter(obs_season_data, parameter == param_name)
+      df_obs <-  dplyr::select(df_obs, -c(parameter))
   } else { 
       df_obs <- dplyr::filter(obs_season_data, measurand_id == param_id)
-  }
-  
-  if (param_name == "TAMIN12H" || param_name == "TAMAX12H") {
-    start <- df_obs$obstime[1]
-    end <- df_obs$obstime[dim(df_obs)[1]]
-    obs_interp <-  as.data.frame(cbind(seq(start, end, by="1 hour"),NA))
-    obs_interp[,1] <- seq(start, end, by="1 hour")
-    rm(start)
-    rm(end)
-    colnames(obs_interp) <- c("obstime","value")
-    
-    for (rr in 1:dim(obs_interp)[1]) {
-      differences_in_hours <- difftime(obs_interp$obstime[rr],df_obs$obstime,units="hours") #(obs_interp$obstime[rr] - df_obs$obstime)
-      assigned_value <- df_obs$value[head(which((differences_in_hours <= 0) & (differences_in_hours > -12)),1)]
-      if (!length(assigned_value)==FALSE) {
-        obs_interp$value[rr] <- assigned_value
-      }
-      rm(assigned_value)
-      rm(differences_in_hours)
-    }
-    df_obs <- obs_interp
-    colnames(df_obs)[ncol(df_obs)] <- param_name
-    df_mos_obs<- merge(df_mos, df_obs,by.x=c("forecast_time"), by.y=c("obstime"), all.x = TRUE)
-    
-  } else {
-    if (station_type == 1) { 
-      df_obs <-  dplyr::select(df_obs, -c(parameter))
-    } else {
       df_obs <-  dplyr::select(df_obs, -c(measurand_id))
-    }
-    colnames(df_obs)[ncol(df_obs)] <- param_name
-    
-    df_mos_aa <- (df_mos %>%
-                    dplyr::filter(analysis_time == atime))
-    df_mos_obs<- merge(df_mos_aa, df_obs,by.x=c("station_id", "forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
   }
+  colnames(df_obs)[ncol(df_obs)] <- param_name
+  df_mos_aa <- (df_mos %>% dplyr::filter(analysis_time == atime))
+  df_mos_obs<- merge(df_mos_aa, df_obs,by.x=c("station_id", "forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
   # results <- list("data" = df_mos_obs, "response" = param_name)
   return(df_mos_obs)
-  
-  
 }
 
 

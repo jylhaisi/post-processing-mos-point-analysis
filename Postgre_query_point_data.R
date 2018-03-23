@@ -14,13 +14,13 @@ timestamps_series <- define_time_series()
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
-derived_variables <- c("T2_2","T2_0.5","RH_SURF","RH_SURF_2","DECLINATION","SOL_ANGLE")
+derived_variables <- NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- c(1406,2798) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+station_numbers <- c(2978,1406) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
-output_dir <- "/data/daniel/statcal/R_projects/ld_playground/lr_model_training/test/" 
+output_dir <- "/data/statcal/results/MOS_coefficients/test1/"
 max_variables <- 10
 fitting.method  <- "GlmnR1"
 
@@ -32,7 +32,7 @@ fitting.method  <- "GlmnR1"
 # variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
 # variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
 
-variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"mos_trace_v","MOS")
+variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
 variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 # variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"),choose_variables(c("PSEA","WS","WD"),"weather_data_qc","CLDB"))
@@ -250,22 +250,22 @@ for (station_number_index in station_numbers_indices) {
     
     
     if (!(is.null(predictand_data$CLDB$weather_data_qc))) {  # observation data from foreign station
-          obsdata <- predictand_data$CLDB$weather_data_qc
-          station_type <- 1
+      obsdata <- predictand_data$CLDB$weather_data_qc
+      station_type <- 1
     } else {
-            obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
-            station_type <- 0
+      obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
+      station_type <- 0
     }
     
     mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
     
   
-    source("functions_glm_purrr.R")
-    GlmnR1_training_purrr(station_list_retrieved, station_type, obsdata, mosdata)
-    
-    # source("functions_glm.R")
-    #GlmnR1_training(station_list_retrieved, station_type, obsdata, mosdata)
-    
+    # source("functions_glm_purrr.R")
+    # GlmnR1_training_purrr(station_list_retrieved, station_type, obsdata, mosdata)
+    # GlmnR1_training_purrr(station_list_retrieved, obsdata, mosdata, max_variables, fitting.method, station_type)
+    source("functions_glm.R")
+    # GlmnR1_training(station_list_retrieved, station_type, obsdata, mosdata)
+    GlmnR1_training(station_list_retrieved, obsdata, mosdata, max_variables, fitting.method, station_type)
 #     # Tarkistetaan löytyykö mallidataa vai ei
 #     if (length(eval(parse(text=mallidatamatriisi))[,1])<ennuste_havaintoparien_minimimaara) {
 #       # Hypätään loopissa seuraavaan ajanjaksoon, koska mallidataa ei ole.
