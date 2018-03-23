@@ -29,6 +29,8 @@ GlmnR1_training <- function(station_id, obsdata, mosdata, max_variables, fitting
   obsdata <- InterpolateMinMaxValues(station_id, obsdata, station_type)
   # Divide data into seasons
   data_seasons <- SplitSeasons(station_id, mosdata, obsdata)
+  rm(obsdata)
+  rm(mosdata)
   
   for (ss in 1:4)  {   # Seasons winter: 1, spring: 2, Summer: 3 and autumn: 4
     mos_season_data <- data_seasons[[1]][[ss]]
@@ -38,19 +40,27 @@ GlmnR1_training <- function(station_id, obsdata, mosdata, max_variables, fitting
     df_mos <- GenerateMOSDataFrame(station_id,mos_season_data)
   
     for (aa in analysis_times) {  # Analysis times 00 UTC and 12 UTC 
-      # The predictands in the variable_list_predictands are checked so that at least some data exists
+      # The predictands in the variable_list_predictands have been checked in the main programme so that at least some data exists
       for (rr in 1:length(variable_list_predictands$variable_name)) {
-        response <- variable_list_predictands$variable_name[rr]
+        response_name <- variable_list_predictands$variable_name[rr]
+        if (station_type==1) {
+          response_id <- variable_list_predictands$variable_name[rr]
+        } else {
+          if (variable_list_predictands$table_name[rr]=="observation_data_v1") {
+            response_id <- variable_list_predictands$variable_name[rr]
+          } else {
+            response_id <- all_variable_lists$estimated_parameters$CLDB_observation_data_v1[match(variable_list_predictands$variable_name[rr],rownames(all_variable_lists$estimated_parameters))]
+          }
+        }
         
         # Initializing the training matrix for a season, for an analysis
-        coefficients.station.season.atime.fperiod <- as.data.frame(matrix( NA, nrow=length(all_producer_lists$ECMWF$forecast_periods_hours), 
-                                                                        ncol=((length(variable_list_predictors$variable_name))+1)))
-        rownames(coefficients.station.season.atime.fperiod) <-   forecast_periods
+        coefficients.station.season.atime.fperiod <- as.data.frame(matrix( NA, nrow=length(all_producer_lists$ECMWF$forecast_periods_hours), ncol=((length(variable_list_predictors$variable_name))+1)))
+        rownames(coefficients.station.season.atime.fperiod) <- forecast_periods
         colnames(coefficients.station.season.atime.fperiod ) <- c("Intercept", variable_list_predictors$variable_name)
   
         for (ff in forecast_periods) { # There are 64 forecast_periods
-          df_mos_fp <- FetchMOSDataFP(df_mos, aa, ff) 
-          data_response <- FetchData_season_analysis_time(station_id, aa, df_mos_fp, obs_season_data, response, station_type)
+          df_mos_aa_fp <- FetchMOSDataFP(df_mos, aa, ff) 
+          data_response <- FetchData_season_analysis_time(station_id, df_mos_aa_fp, obs_season_data, response_name, response_id, station_type)
           data_fit <- data_response # data_response$data  # data for a particular response variable
           # response <- data_response$response
           data_fit <- CleanData(data_fit)  # Cleaning the NAs
@@ -60,6 +70,7 @@ GlmnR1_training <- function(station_id, obsdata, mosdata, max_variables, fitting
             stn_coeffs <- results$coefficients
             coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
           }
+          print(ff)
         }
         rm(ff)
         coefficients.station.season.atime.fperiod[is.na(coefficients.station.season.atime.fperiod)] <- 0

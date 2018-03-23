@@ -751,3 +751,9 @@ The following object is masked from ‘package:insol’:
 + }
 [1] "List contains values!"
 [1] "List contains values!"
+[1] "List contains values!"
+[1] "List contains values!"
+Error in subset.default(obsdata, TAMAX12H == param_id_extr) : 
+  object 'TAMAX12H' not found
+Calls: GlmnR1_training ... ReturnInterpolatedMinMaxValues -> eval -> eval -> subset -> subset.default
+Execution halted

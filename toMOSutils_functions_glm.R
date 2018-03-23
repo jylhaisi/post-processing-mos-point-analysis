@@ -186,31 +186,6 @@ GenerateMOSDataFrame <- function(station_id,mos_season_data) {
         }
       }
   }
-    
-  
-# The values of the 8-digit derived_param_id variables SOL_ANGLE and DECLINATION are calculated and added to the MOS dataframe
-
-  if ("SOL_ANGLE" %in% variable_list_predictors$variable_name) { 
-      declination <- -asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+
-                          (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+
-                          (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)-2))))*360/2/pi
-  
-      hour_angle <- ((as.numeric(format(df_mos$forecast_time,"%H"))+12)%%24)/24*2*pi
-      # Edellinen on UTC-aikaa. Tämän vuoksi pitää lisätä tuntikulmalaskuun aseman longitudi (tarkemmin ottaen longitudin ja nollameridiaanin välinen kulma := longitudi)
-      #tuntikulma <- (tuntikulma + station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]/360*2*pi) %% (2*pi)
-      hour_angle <- (hour_angle + station_idt_conversion$lon[which(station_idt_conversion$wmon==2974)]/360*2*pi) %% (2*pi)
-      df_mos <- df_mos %>% mutate(SOL_ANGLE =  ((cos(hour_angle)*cos(declination/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)])) + 
-                                              (sin(declination/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)]))))
-  
-      # Changing the negative values of SOL_ANGLE to zero
-      df_mos$SOL_ANGLE[df_mos$SOL_ANGLE < 0] <- 0
-  
-  }
-
-  if ("DECLINATION" %in% variable_list_predictors$variable_name) { 
-      df_mos <- df_mos %>% mutate(DECLINATION = (-asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time-(3600*24*32))+
-                                                (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos$forecast_time-(3600*24*32))+
-                                                (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)-2))))*360/2/pi))}
 
   return(df_mos)
 }
@@ -287,39 +262,66 @@ ReturnInterpolatedMinMaxValues <- function(station_id, obsdata, column_name, par
   return(obsdata)
 }
 
-FetchData_season_analysis_time <- function(station_id, atime, df_mos, obs_season_data, response, station_type) {
+FetchData_season_analysis_time <- function(station_id, df_mos_aa_fp, obs_season_data, param_name, param_id, station_type) {
+  # # This is faster, but does not guarantee that the specific season would have all the parameters from the param_list available
+  # if (station_type == 1) {
+  #   param_list <- all_variable_lists$estimated_parameters$CLDB_weather_data_qc[match(variable_list_predictands$variable_name,rownames(all_variable_lists$estimated_parameters))] #unique(obs_season_data[["parameter"]])
+  # } else {
+  #   param_list <- all_variable_lists$estimated_parameters$CLDB_observation_data_v1[match(variable_list_predictands$variable_name,rownames(all_variable_lists$estimated_parameters))] # unique(obs_season_data[["measurand_id"]])
+  # }
+  # obs_vars <- all_variable_lists[["estimated_parameters"]]
+  # for (pp in 1:length(param_list)) {
+  #   if (rownames(obs_vars)[pp] != response) {
+  #     next;
+  #   } else { 
+  #     if (station_type == 1) { 
+  #       #param_name = obs_vars$CLDB_weather_data_qc[pp]
+  #       param_name <- response
+  #     } else { 
+  #       #param_name <- variable_list_predictands$variable_name[pp]
+  #       param_name <- response
+  #       param_id  <- obs_vars$CLDB_observation_data_v1[pp]
+  #     }
+  #     break;
+  #   }
+  # }
+  # rm(pp)
   if (station_type == 1) {
-    param_list <- unique(obs_season_data[["parameter"]])
-  } else {
-    param_list <- unique(obs_season_data[["measurand_id"]])
-  }
-  obs_vars <- all_variable_lists[["estimated_parameters"]]
-  for (pp in 1:length(param_list)) {
-    if (rownames(obs_vars)[pp] != response) {
-      next;
-    } else { 
-      if (station_type == 1) { 
-        #param_name = obs_vars$CLDB_weather_data_qc[pp]
-        param_name <- response
-      } else { 
-        #param_name <- variable_list_predictands$variable_name[pp]
-        param_name <- response
-        param_id  <- obs_vars$CLDB_observation_data_v1[pp]
-      }
-      break;
-    }
-  }
-  rm(pp)
-  if (station_type == 1) {
-      df_obs <- dplyr::filter(obs_season_data, parameter == param_name)
-      df_obs <-  dplyr::select(df_obs, -c(parameter))
+      df_obs <- subset(obs_season_data, measurand_id == param_id)[which(names(obs_season_data) %!in% "parameter")] # dplyr::filter(obs_season_data, parameter == param_id)
+      # df_obs <-  dplyr::select(df_obs, -c(parameter))
   } else { 
-      df_obs <- dplyr::filter(obs_season_data, measurand_id == param_id)
-      df_obs <-  dplyr::select(df_obs, -c(measurand_id))
+      df_obs <- subset(obs_season_data, measurand_id == param_id)[which(names(obs_season_data) %!in% "measurand_id")] # (dplyr::filter(obs_season_data, measurand_id == param_id)
+      # df_obs <-  dplyr::select(df_obs, -c(measurand_id))
+  }
+  if (dim(df_obs)[1]==0) {
+    return(cbind(df_mos_aa_fp,NA))
   }
   colnames(df_obs)[ncol(df_obs)] <- param_name
-  df_mos_aa <- (df_mos %>% dplyr::filter(analysis_time == atime))
-  df_mos_obs<- merge(df_mos_aa, df_obs,by.x=c("station_id", "forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
+  
+  # The values of the 8-digit derived_param_id variables SOL_ANGLE and DECLINATION are calculated and added to the MOS dataframe
+  if ("SOL_ANGLE" %in% variable_list_predictors$variable_name) { 
+    declination <- -asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos_aa_fp$forecast_time)+
+                                                          (as.numeric(format(df_mos_aa_fp$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos_aa_fp$forecast_time)+
+                                                                                                                                                            (as.numeric(format(df_mos_aa_fp$forecast_time,"%H"))/24)-1)-2))))*360/2/pi
+    
+    hour_angle <- ((as.numeric(format(df_mos_aa_fp$forecast_time,"%H"))+12)%%24)/24*2*pi
+    # Edellinen on UTC-aikaa. Tämän vuoksi pitää lisätä tuntikulmalaskuun aseman longitudi (tarkemmin ottaen longitudin ja nollameridiaanin välinen kulma := longitudi)
+    #tuntikulma <- (tuntikulma + station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]/360*2*pi) %% (2*pi)
+    hour_angle <- (hour_angle + station_idt_conversion$lon[which(station_idt_conversion$wmon==2974)]/360*2*pi) %% (2*pi)
+    df_mos_aa_fp <- df_mos_aa_fp %>% mutate(SOL_ANGLE =  ((cos(hour_angle)*cos(declination/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)])) + 
+                                                (sin(declination/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)]))))
+    
+    # Changing the negative values of SOL_ANGLE to zero
+    df_mos_aa_fp$SOL_ANGLE[df_mos_aa_fp$SOL_ANGLE < 0] <- 0
+    
+  }
+  if ("DECLINATION" %in% variable_list_predictors$variable_name) { 
+    df_mos_aa_fp <- df_mos_aa_fp %>% mutate(DECLINATION = (-asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos_aa_fp$forecast_time-(3600*24*32))+
+                                                                                      (as.numeric(format(df_mos_aa_fp$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos_aa_fp$forecast_time-(3600*24*32))+
+                                                                                                                                                                                        (as.numeric(format(df_mos_aa_fp$forecast_time,"%H"))/24)-1)-2))))*360/2/pi))}
+  
+  
+  df_mos_obs<- merge(df_mos_aa_fp, df_obs,by.x=c("station_id","forecast_time"), by.y=c("station_id","obstime"), all.x = TRUE)
   # results <- list("data" = df_mos_obs, "response" = param_name)
   return(df_mos_obs)
 }
@@ -379,25 +381,25 @@ FetchData <- function(station_id, atime, fperiod, mos_season_data, obs_season_da
   }
   
   
-  if ("SOL_ANGLE" %in% variable_list_predictors$variable_name) { 
-        declination <- -asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+(as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+
-                        (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)-2))))*360/2/pi
-        
-        hour_angle <- ((as.numeric(format(df_mos$forecast_time,"%H"))+12)%%24)/24*2*pi
-        # Edellinen on UTC-aikaa. Tämän vuoksi pitää lisätä tuntikulmalaskuun aseman longitudi (tarkemmin ottaen longitudin ja nollameridiaanin välinen kulma := longitudi)
-        #tuntikulma <- (tuntikulma + station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]/360*2*pi) %% (2*pi)
-        hour_angle <- (hour_angle + station_idt_conversion$lon[which(station_idt_conversion$wmon==2974)]/360*2*pi) %% (2*pi)
-        df_mos <- df_mos %>% mutate(SOL_ANGLE =  ((cos(hour_angle)*cos(declination/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)])) + 
-                                                    (sin(declination/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)]))))
-        
-        #df_mos <- df_mos %>% mutate(SOL_ANGLE =  ((cos(tuntikulma)*cos(deklinaatio/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])])) + 
-                                                    #(sin(deklinaatio/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]))))
-        # # Tämä tulee suoraan hienostuneemmasta funktiosta (samasta mitä NOAA käyttää), mutta tätä ei käytetä
-        # havainnot_ja_mallidata[,dim(havainnot_ja_mallidata)[2]] <- 90-sunpos(sunvector(JD(havainnot_ja_mallidata$kohdehetki),station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],0))[,2]
-        # Muutetaan negatiiviset korkeuskulman arvot nollaksi
-        df_mos$SOL_ANGLE[df_mos$SOL_ANGLE < 0] <- 0
-        
-     }
+  # if ("SOL_ANGLE" %in% variable_list_predictors$variable_name) { 
+  #       declination <- -asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+(as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)+10)+1.914/360*2*pi*sin(0.98565/360*2*pi*((daydoy(df_mos$forecast_time)+
+  #                       (as.numeric(format(df_mos$forecast_time,"%H"))/24)-1)-2))))*360/2/pi
+  #       
+  #       hour_angle <- ((as.numeric(format(df_mos$forecast_time,"%H"))+12)%%24)/24*2*pi
+  #       # Edellinen on UTC-aikaa. Tämän vuoksi pitää lisätä tuntikulmalaskuun aseman longitudi (tarkemmin ottaen longitudin ja nollameridiaanin välinen kulma := longitudi)
+  #       #tuntikulma <- (tuntikulma + station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]/360*2*pi) %% (2*pi)
+  #       hour_angle <- (hour_angle + station_idt_conversion$lon[which(station_idt_conversion$wmon==2974)]/360*2*pi) %% (2*pi)
+  #       df_mos <- df_mos %>% mutate(SOL_ANGLE =  ((cos(hour_angle)*cos(declination/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)])) + 
+  #                                                   (sin(declination/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==2974)]))))
+  #       
+  #       #df_mos <- df_mos %>% mutate(SOL_ANGLE =  ((cos(tuntikulma)*cos(deklinaatio/360*2*pi)*cos(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])])) + 
+  #                                                   #(sin(deklinaatio/360*2*pi)*sin(2*pi/360*station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])]))))
+  #       # # Tämä tulee suoraan hienostuneemmasta funktiosta (samasta mitä NOAA käyttää), mutta tätä ei käytetä
+  #       # havainnot_ja_mallidata[,dim(havainnot_ja_mallidata)[2]] <- 90-sunpos(sunvector(JD(havainnot_ja_mallidata$kohdehetki),station_idt_conversion$lat[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],station_idt_conversion$lon[which(station_idt_conversion$wmon==previ_ecmos_v_station_id[i])],0))[,2]
+  #       # Muutetaan negatiiviset korkeuskulman arvot nollaksi
+  #       df_mos$SOL_ANGLE[df_mos$SOL_ANGLE < 0] <- 0
+  #       
+  #    }
         
   # if ("DECLINATION" %in% variable_list_predictors$variable_name) { 
   #   df_mos <- df_mos %>% mutate(DECLINATION = (-asin(0.39779*cos(0.98565/360*2*pi*((daydoy(df_mos$forecast_time-(3600*24*32))+
@@ -418,7 +420,7 @@ return(df_mos_obs)
 
 
 
-CleanData <- function(data) {
+CleanData <- function(data_cleaned) {
   # Cleans a data  from bad observations and variables and  NAs 
   # Args:
   #   data: data retrived from the database
@@ -434,8 +436,8 @@ CleanData <- function(data) {
   
   #colnames(data)[c(1:6)] <- c("station", "analysis_time", "forecast_period", "timestamps", "T2Obs")
   
-  station_info <- data[,c(1:4)]
-  station_data <- data[,5:(ncol(data))]
+  station_info <- data_cleaned[,c(1:4)]
+  station_data <- data_cleaned[,5:(ncol(data_cleaned))]
   station_data <- station_data[,c(ncol(station_data),1:(ncol(station_data)-1))]
   
   no.of.obs <-  nrow(station_data)
@@ -469,9 +471,9 @@ CleanData <- function(data) {
   station_info <- station_info[complete.rows,]
   
   # returning the cleaned data by combining the new station_info dataframe and the new station_data dataframe
-  data <- cbind.data.frame(station_info, station_data)
+  data_cleaned <- cbind.data.frame(station_info, station_data)
   
-  return(data)
+  return(data_cleaned)
 }
 
   
