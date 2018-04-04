@@ -214,7 +214,7 @@ InterpolateMinMaxValues <- function(station_id, obsdata, station_type) {
     # param_ids <- rownames(all_variable_lists[["estimated_parameters"]])[match(param_list,unlist(all_variable_lists[["estimated_parameters"]]["CLDB_weather_data_qc"]))]
     for (param_id_extr in c("TAMAX12H","TAMIN12H")) {
       if (param_id_extr %in% param_list) {
-        obsdata <- ReturnInterpolatedMinMaxValues(obsdata,"parameter",param_id_extr)
+        obsdata <- ReturnInterpolatedMinMaxValues(station_id, obsdata,"parameter",param_id_extr)
       }
     }
     rm(param_id_extr)
@@ -534,7 +534,7 @@ FitWithStep <- function(training.set,
 
 
 FitWithRegsubsets <- function(training.set,
-                              x, force.in, method) {
+                              x, force.in, method, max_variables=10) {
   # The regsubsets() function (part of the leaps library) performs best sub- set selection by identifying the best model that contains 
   # a given number of predictors, where best is quantified using RSS.
   #
@@ -563,7 +563,7 @@ FitWithRegsubsets <- function(training.set,
 }
 
 
-FitWithGlmnR1 <- function(training.set) {
+FitWithGlmnR1 <- function(training.set, max_variables=10) {
   # The Lasso regression with 11 predictors and lambda min
   #
   # Args:
@@ -572,6 +572,7 @@ FitWithGlmnR1 <- function(training.set) {
   #
   # Returns:
   #   A list of coefficients
+  print(max_variables)
   training.matrix <- as.matrix(training.set)
   training.x <- training.matrix[,-1]
   training.y <- training.matrix[,1]
@@ -594,7 +595,7 @@ FitWithGlmnR1 <- function(training.set) {
 }
 
 
-FitWithGlmnR1purrr <- function(training.set) {
+FitWithGlmnR1purrr <- function(training.set, max_variables=10) {
   # The Lasso regression with 11 predictors and lambda lse
   #
   # Args:
@@ -603,7 +604,6 @@ FitWithGlmnR1purrr <- function(training.set) {
   #
   # Returns:
   #   A list of coefficients
-  max_variables = 10;
   training.matrix <- as.matrix(training.set[5:ncol(training.set)])
   glmnet.model <- suppressWarnings(glmnet(training.matrix[,-1], training.matrix[,1], family = "gaussian", alpha = 1, standardize = TRUE, pmax = max_variables+1))
   filter.for.folds <- IndexVectorToFilter(SplitDataEvenly(training.matrix[,1]))
@@ -622,7 +622,7 @@ FitWithGlmnR1purrr <- function(training.set) {
 }
 
   
-FitWithGlmnM1<- function(training.set) {
+FitWithGlmnM1<- function(training.set, max_variables=10) {
   # The Lasso regression which takes 11 predictors and lambda lse
   #
   # Args:
@@ -951,11 +951,11 @@ ModelsOfAlgorithms <- function(training.set) {
 
 
 
-Train.Model <- function(data, fitting.method) { 
+Train.Model <- function(data, fitting_algorithm, max_variables=10) { 
   # Train with LM, Glmnet Lasso and PCA models
   # Args:
   #   data: data retrieved from the database
-  #   fitting.method: The type pf the regrssion model
+  #   fitting_algorithm: The type pf the regrssion model
   #
   # Returns:
   #   Trained coefficients 
@@ -980,7 +980,7 @@ Train.Model <- function(data, fitting.method) {
   # Call the function ModelsOfAlgorithms() to get the regression models with all algorithms namely
   # lm, lmstep, regsub, GlmnR1, GlmnM1, pcr, pcr10 and pcrvar
 
-  if (fitting.method == "All") { 
+  if (fitting_algorithm == "All") { 
     results <- ModelsOfAlgorithms(obs_model_data)
     coefficients.lm     <- results$coefficients$lm
     coefficients.lmstep <- results$coefficients$lmstep
@@ -1000,7 +1000,7 @@ Train.Model <- function(data, fitting.method) {
                   coefficients.pcr10  = coefficients.pcr10,
                   coefficients.pcrvar = coefficients.pcrvar)
   } else { 
-          switch(fitting.method,
+          switch(fitting_algorithm,
                  "lm" = {
                      tmp.time.result <- system.time(
                      tmp.result <- FitWithLM(
@@ -1024,7 +1024,7 @@ Train.Model <- function(data, fitting.method) {
                  "GlmnR1" = {
                    tmp.time.result <- system.time(
                      tmp.result <- FitWithGlmnR1(
-                       training.set)
+                       training.set,max_variables)
                    )
                    ## If a predictor is not taken into linear regression becuase it is of constant value or due to some other reason, in the final results
                    ## the coefficient of that predictor is given a value of zero
@@ -1034,7 +1034,7 @@ Train.Model <- function(data, fitting.method) {
                  "GlmnM1" = {
                    tmp.time.result <- system.time(
                      tmp.result <- FitWithGlmnM1(
-                       training.set)
+                       training.set,max_variables)
                    )
                    ## If a predictor is not taken into linear regression becuase it is of constant value or due to some other reason, in the final results
                    ## the coefficient of that predictor is given a value of zero
