@@ -6,24 +6,33 @@ source("load_libraries_tables_and_open_connections.R")
 # WHEN MAKING THIS SCRIPT INTO A FUNCTION, MAKE POSSIBLE TO GIVE STATION NUMBERS OR STATION LISTS AS ARGUMENTS
 # DERIVED VARIABLES: IS ONLY SUPPORTED CURRENTLY FOR MOS VARIABLES. CLDB/VERIF VARIABLES CANNOT BE DERIVED ATM. DERIVED VARIABLES WITH 8-DIGIT PARAMETER NUMBER (E.G. ASTRONOMICAL VARIABLES) ARE FORMED LATER IN EXECUTION WHEN FORMING MODEL-OBSPAIRS AND ARE NOT STORED IN MOS DATA FRAMES!
 # KNOWN ISSUES: TAMINDAILY -RETRIEVAL AND OTHER DERIVED VARS NEED TO BE CHANGED SO THAT DERIVED_VARIABLE NAME IS CHANGED INSTEAD OF DB-SPECIFIC NAME
-# RETRIEVE DATA FROM "ALL" STATIONS HAS NOT BEEN CODED YET! CURRENTLY STATION DATA FROM CLDB IS RETRIEVED BASED ON WMON LIST AND NOT ALL STATIONS CAN BE RETRIEVED!!! THIS HAS A 1000 STATION LIMIT...
-
+# CREATE A FUNCTION THAT "MELTS" "observation_data_v1" and "weather_data_qc" FROM CLDB LIST INTO A COMMON DATA FRAME!
+# For TAMAX12H/TAMIN12H values InterpolateMinMaxValues generates multiple NA-values for those 12h timeslots that have missing value for the variable.
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2017-10-14 00:00:00 GMT", end_date = "2017-10-20 21:00:00 GMT", interval_in_hours = 3)
+timestamps_series <- define_time_series()
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
-derived_variables <- c("T2^2","T2^(1/2)","RH_SURF","RH_SURF^2","DECLINATION","SOL_ANGLE")
+derived_variables <- NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+station_numbers <- c(1406,2978) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
+output_dir <- "/data/statcal/results/MOS_coefficients/test1_purrr/"
+max_variables <- 10
+fitting_algorithm  <- "GlmnR1"
+fitting_method <- "purrr" # either purrr or glm
 
 # Defining used variable_lists
-# First column indicates specific variable name in the database table indicated by the second column, third column is the database name. Shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
+# First column indicates specific variable name in the database table indicated by the second column, third column is the database name.
+# Varibles shortnames are database-specific, except for MOS db (it uses pre-defined variable set names and derived variables) and CLDB_both (foreign and finnish observations are both fetched and they have different variable names).
+# For MOS db table MOS_trace_v, data can be fetched either from only the target_param_name (use table_name MOS_trace_v) or also from source_param_name and weight (use table_name MOS_trace_v_all).
 # If you want to combine variables from several databases, run choose_variables several times with different parameters and combine the output.
+# variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
+# variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
+
 variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS")
 variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
@@ -49,9 +58,18 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
 # retrieved_data <- do.call(retrieve_data_all,function_arguments)
 
+# ##### EXAMPLE FOR RETRIEVING ONLY PRECIPITATION FROM CLDB
+# variable_list_retrieved <- rbind(choose_variables(c("1","61","62","63","64","65","175","315","368"),"observation_data_v1","CLDB"))
+# station_list_retrieved <- 2876 #all_station_lists[["all_stations_realtime"]]
+# station_list_retrieved <- station_list_retrieved
+# station_list_retrieved <- station_list_retrieved$station_id
+# function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+# retrieved_data <- do.call(retrieve_data_all,function_arguments)
+
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
+
 
 for (station_number_index in station_numbers_indices) {
   
@@ -76,213 +94,43 @@ for (station_number_index in station_numbers_indices) {
     ### RETRIEVING PREDICTAND DATA ###
     # WMO-numbers of stations which are retrieved (any wmon station list based on some criteria [such as geographical distance] can be defined here)
     # station_list_retrieved <- station_numbers[c(station_number_index,station_number_index+1)]
-    # station_list_retrieved <- c(1002,1006,2943,2944,6170)
+    # station_list_retrieved <- c(2974)
     station_list_retrieved <- station_numbers[c(station_number_index)]
     function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
     predictand_data <- do.call(retrieve_data_all,function_arguments)
-    ### RETRIEVING PREDICTOR DATA ###
+    # ### RETRIEVING PREDICTOR DATA ###
     function_arguments <- list(variable_list_predictors,station_list_retrieved,timestamps_series)
     predictor_data <- do.call(retrieve_data_all,function_arguments)
-    # ### RETRIEVING ALL DATA ###
+    # # ### RETRIEVING ALL DATA ###
     # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
     # all_data <- do.call(retrieve_data_all,function_arguments)
     
-    # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
-    predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
-    predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
-    predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
-    predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
-    unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
-    rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
-    
-    # Removing all unnecessary variables in variable_list_predictors which are not present in the data
-    # EDIT THIS A LOT MORE STILL...
-    # MOS: Remove those variables from variable_list which are not found in the database
-    # COUNT THE NUMBER OF DIGITS IN STRING! nchar(x)<8 is not ENOUGH AS THERE IS e.g. TAMAX12H!!
-    clean_variable_list <- function(variable_list_to_be_cleaned,db_data) {
-      
-      ### MOS -Previ_ecmos_narrow_v
-      if (!is.null(db_data[["MOS"]])) {
-        # Full variable list
-        all_db_and_derived_vars <- setNames(all_variable_lists[["MOS"]][,c("variable_EC","param_id","level_value")],c("variable_name","param_id","level_value"))
-        all_db_and_derived_vars <- rbind(all_db_and_derived_vars,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]][c("derived_param_id","MOS_previ_ecmos_narrow_v_level")]),c("variable_name","param_id","level_value"))[-1,])
-        # These are actually retrieved
-        retrieved_vars_db <- all_db_and_derived_vars[row.match(unique(db_data[["MOS"]][["previ_ecmos_narrow_v"]][,c("param_id","level_value")]),all_db_and_derived_vars[,c("param_id","level_value")]),]
-        # Creating removed_vars -list by subtracting down from full variable list
-        removed_vars <- all_db_and_derived_vars
-        # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["param_id"],function (x) nchar(x)<8),]
-        # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables
-        removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="MOS" & table_name=="previ_ecmos_narrow_v")["variable_name"]),removed_vars[["variable_name"]]),])
-        # Narrow down removed_vars list to those which are NOT found among the retrieved vars
-        removed_vars <- removed_vars[which(is.na(row.match(removed_vars,retrieved_vars_db))),]
-        # Remove unfound variables
-        if (dim(removed_vars)[1]>0) {
-          variable_list_to_be_cleaned <- variable_list_to_be_cleaned[-which(variable_list_to_be_cleaned[["variable_name"]] %in% removed_vars[["variable_name"]] & variable_list_to_be_cleaned[["table_name"]]=="previ_ecmos_narrow_v" & variable_list_to_be_cleaned[["db"]]=="MOS"),]
-        }
-        rm(removed_vars)
-        rm(all_db_and_derived_vars)
-      }
-      
-      ### MOS -mos_trace_v...
-      
-      ### verif
-      if (!is.null(db_data[["verif"]])) {
-        # Full variable list (derived variables can also be fetched (NOT CODED AS IN 160817) and they're named as in rownames(all_variable_lists[["derived_variables_all"]]))
-        all_db_and_derived_vars <- setNames(all_variable_lists[["verif"]][,c("id","id")],c("variable_name","id"))
-        all_db_and_derived_vars <- rbind(all_db_and_derived_vars,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]]["derived_param_id"]),c("variable_name","id"))[-1,])
-        # All these variables can be from any producer
-        all_db_and_derived_vars <- all_db_and_derived_vars %>% tidyr::crossing(all_verif_lists[["producers"]][["id"]])
-        dimnames(all_db_and_derived_vars)[[2]] <- c("variable_name","id","table_name")
-        # These are actually retrieved
-        retrieved_vars_db <- all_db_and_derived_vars[row.match(unique(db_data[["verif"]][,c("id","model")]),all_db_and_derived_vars[,c("id","table_name")]),]
-        # Creating removed_vars -list by subtracting down from full variable list
-        removed_vars <- all_db_and_derived_vars
-        # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) nchar(x)<8),]
-        # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables
-        removed_vars <- na.omit(removed_vars[row.match(subset(variable_list_to_be_cleaned,db=="verif")[,c("variable_name","table_name")],removed_vars[,c("id","table_name")]),])
-        # Narrow down removed_vars list to those which are NOT found among the retrieved vars
-        removed_vars <- removed_vars[which(is.na(row.match(removed_vars[,c("id","table_name")],retrieved_vars_db[,c("variable_name","table_name")]))),]
-        # Remove unfound variables
-        if (dim(removed_vars)[1]>0) {
-          variable_list_to_be_cleaned <- variable_list_to_be_cleaned[-which(row.match(variable_list_to_be_cleaned[,c("variable_name","table_name")],removed_vars[,c("variable_name","table_name")]) & variable_list_to_be_cleaned[["db"]]=="verif"),]
-        }
-        rm(removed_vars)
-        rm(all_db_and_derived_vars)
-      }
-      
-      ### CLDB - weather_data_qc (these are retrieved based on variable names specified in rownames(all_variable_lists[["mapping_parameters_all"]]))
-      if (!is.null(db_data[["CLDB"]][["weather_data_qc"]])) {
-        # Full variable list (derived variables could also be derived for CLDB variables (NOT CODED AS IN 160817), using naming convention as defined in rownames(all_variable_lists[["derived_variables_all"]]). To data frame the data is stored using number all_variable_lists[["derived_variables_all"]][["derived_param_id"]])
-        all_db_and_derived_vars <- setNames(as.data.frame(cbind(rownames(all_variable_lists[["mapping_parameters_all"]]),rownames(all_variable_lists[["mapping_parameters_all"]]))[-1,],stringsAsFactors = FALSE),c("variable_name","id"))
-        all_db_and_derived_vars <- rbind(all_db_and_derived_vars,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]]["derived_param_id"]),c("variable_name","id"))[-1,])
-        # These are actually retrieved (all which is retrieved from weather_data_qc, independent whether the table_name is "both" or "weather_data_qc")
-        retrieved_vars_db <- all_db_and_derived_vars[match(unique(db_data[["CLDB"]][["weather_data_qc"]][,"parameter"]),all_db_and_derived_vars[,"id"]),]
-        # Creating removed_vars -list by subtracting down from full variable list
-        removed_vars <- all_db_and_derived_vars
-        # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["id"],function (x) nchar(x)<8),]
-        # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
-        removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="weather_data_qc")["variable_name"]),removed_vars[["variable_name"]]),])
-        # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars_db
-        removed_vars <- removed_vars[which(is.na(row.match(removed_vars[,c("variable_name","id")],retrieved_vars_db[,c("variable_name","id")]))),]
-        # Remove unfound variables
-        if (dim(removed_vars)[1]>0) {
-          variable_list_to_be_cleaned <- variable_list_to_be_cleaned[-which(!is.na(match(variable_list_to_be_cleaned[,c("variable_name")],removed_vars[,c("variable_name")])) & variable_list_to_be_cleaned[["table_name"]]=="weather_data_qc" & variable_list_to_be_cleaned[["db"]]=="CLDB"),]
-        }
-        rm(removed_vars)
-        rm(all_db_and_derived_vars)
-      }
-      
-      ### CLDB - observation_data_v1 (these are retrieved based on all_variable_lists$CLDB_observation_data_v1$measurand_id)
-      if (!is.null(db_data[["CLDB"]][["observation_data_v1"]])) {
-        # Full variable list (derived variables could also be derived for CLDB variables (NOT CODED AS IN 160817), using naming convention as defined in rownames(all_variable_lists[["derived_variables_all"]]). To data frame the data is stored using number all_variable_lists[["derived_variables_all"]][["derived_param_id"]])
-        all_db_and_derived_vars <- setNames(as.data.frame(cbind(all_variable_lists$CLDB_observation_data_v1$measurand_code,all_variable_lists$CLDB_observation_data_v1$measurand_id),stringsAsFactors = FALSE),c("variable_name","measurand_id"))
-        all_db_and_derived_vars <- rbind(all_db_and_derived_vars,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]]["derived_param_id"]),c("variable_name","measurand_id"))[-1,])
-        # These are actually retrieved (all which is retrieved from observation_data_v1, independent whether the table_name is "both" or "observation_data_v1")
-        retrieved_vars_db <- all_db_and_derived_vars[match(unique(db_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_db_and_derived_vars[,"measurand_id"]),]
-        # Creating removed_vars -list by subtracting down from full variable list
-        removed_vars <- all_db_and_derived_vars
-        # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["measurand_id"],function (x) nchar(x)<8),]
-        # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
-        removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="observation_data_v1")["variable_name"]),removed_vars[["measurand_id"]]),])
-        # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars_db
-        removed_vars <- removed_vars[which(is.na(row.match(removed_vars[,c("variable_name","measurand_id")],retrieved_vars_db[,c("variable_name","measurand_id")]))),]
-        # Remove unfound variables
-        if (dim(removed_vars)[1]>0) {
-          variable_list_to_be_cleaned <- variable_list_to_be_cleaned[-which(!is.na(match(variable_list_to_be_cleaned[,c("variable_name")],removed_vars[,c("measurand_id")])) & variable_list_to_be_cleaned[["table_name"]]=="observation_data_v1" & variable_list_to_be_cleaned[["db"]]=="CLDB"),]
-        }
-        rm(removed_vars)
-        rm(all_db_and_derived_vars)
-      }
-      
-      ### CLDB - both (these are retrieved based on variable names specified in rownames(all_variable_lists[["mapping_parameters_all"]]), remove those variables that do not have any data from either Finnish or from foreign stations)
-      if (!is.null(db_data[["CLDB"]])) {
-        # Full variable list (derived variables could also be derived for CLDB variables (NOT CODED AS IN 160817), using naming convention as defined in rownames(all_variable_lists[["derived_variables_all"]]). To data frame the data is stored using number all_variable_lists[["derived_variables_all"]][["derived_param_id"]])
-        all_db_and_derived_vars <- setNames(as.data.frame(cbind(rownames(all_variable_lists[["mapping_parameters_all"]]),rownames(all_variable_lists[["mapping_parameters_all"]]),all_variable_lists[["mapping_parameters_all"]][["CLDB_observation_data_v1"]])[-1,],stringsAsFactors = FALSE),c("variable_name","weather_data_qc","observation_data_v1"))
-        all_db_and_derived_vars <- rbind(all_db_and_derived_vars,setNames(cbind(rownames(all_variable_lists[["derived_variables_all"]]),all_variable_lists[["derived_variables_all"]]["derived_param_id"],all_variable_lists[["derived_variables_all"]]["derived_param_id"]),c("variable_name","weather_data_qc","observation_data_v1"))[-1,])
-        # These are actually retrieved (all which is retrieved from weather_data_qc, independent whether the table_name is "both" or "weather_data_qc")
-        retrieved_vars_weather_data_qc <- all_db_and_derived_vars[match(unique(db_data[["CLDB"]][["weather_data_qc"]][,"parameter"]),all_db_and_derived_vars[,"weather_data_qc"]),]
-        retrieved_vars_observation_data_v1 <- all_db_and_derived_vars[match(unique(db_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_db_and_derived_vars[,"observation_data_v1"]),]
-        retrieved_vars <- rbind(retrieved_vars_weather_data_qc,retrieved_vars_observation_data_v1)
-        rm(retrieved_vars_weather_data_qc)
-        rm(retrieved_vars_observation_data_v1)
-        # Creating removed_vars -list by subtracting down from full variable list
-        removed_vars <- all_db_and_derived_vars
-        # Always include derived variables with 8 digit-param_numbers which are calculated later (remove them from removed_list)
-        removed_vars <- removed_vars[sapply(removed_vars["weather_data_qc"],function (x) nchar(x)<8),]
-        # Narrow down removed_vars list to those variables which were initially in the list of retrieved variables (from the table of interest, table_name "both" is not included here so those variables cannot be removed later)
-        removed_vars <- na.omit(removed_vars[match(as.matrix(subset(variable_list_to_be_cleaned,db=="CLDB" & table_name=="both")["variable_name"]),removed_vars[["variable_name"]]),])
-        # Narrow down removed_vars list to those variables which are NOT found among the retrieved vars
-        removed_vars <- removed_vars[which(is.na(row.match(removed_vars,retrieved_vars))),]
-        
-        # Remove unfound variables
-        if (dim(removed_vars)[1]>0) {
-          variable_list_to_be_cleaned <- variable_list_to_be_cleaned[-which(!is.na(match(variable_list_to_be_cleaned[,c("variable_name")],removed_vars[,c("variable_name")])) & variable_list_to_be_cleaned[["table_name"]]=="both" & variable_list_to_be_cleaned[["db"]]=="CLDB"),]
-        }
-        rm(removed_vars)
-        rm(all_db_and_derived_vars)
-      }
-      
-      invisible(variable_list_to_be_cleaned)
-    }
-    # Use above function like this
+    # # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
+    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
+    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
+    # predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
+    # predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
+    # unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
+    # rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
+    #
+    # Remove those variables from variable_list which are not found in the database
     variable_list_predictors <- clean_variable_list(variable_list_predictors,predictor_data)
     variable_list_predictands <- clean_variable_list(variable_list_predictands,predictand_data)
     
+    if (!(is.null(predictand_data$CLDB$weather_data_qc))) {  # observation data from foreign station
+      obsdata <- predictand_data$CLDB$weather_data_qc
+      station_type <- 1
+    } else {
+      obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
+      station_type <- 0
+    }
+    mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
     
+    # Training linear model and saving coefficients to a file
+    MOS_training(station_list_retrieved, obsdata, mosdata, max_variables, fitting_method, fitting_algorithm, station_type, output_dir)
     
-    
-    
-    
-#     # Tarkistetaan löytyykö mallidataa vai ei
-#     if (length(eval(parse(text=mallidatamatriisi))[,1])<ennuste_havaintoparien_minimimaara) {
-#       # Hypätään loopissa seuraavaan ajanjaksoon, koska mallidataa ei ole.
-#       print(paste("mallidataa --",aseman_nimi,"-- ei löydy!",sep=""))
-#       # Otetaan pois mallidata
-#       komento <- paste("rm(",mallidatamatriisi,")",sep="")
-#       eval(parse(text=komento))
-#       rm(komento)
-#       rm(mallidatamatriisi)
-#       # Otetaan pois havaintodata
-#       rm(havainnot)
-#       rm(station_id)
-#       rm(aseman_nimi)
-#     } else {
+
 #       for (sel in variable_indices) {
-#         
-#         ### RETREIVING PREDICTAND DATA ###
-#         source("hae_havainnot_GTS_Brainstorm_AQU.R")
-#         fmisid <- station_idt_conversion$fmisid[which(TRUE==(station_idt_conversion$wmon==station_numbers[station_number_index]))]
-#         parameter <- selitettavat_muuttujat[sel]
-#         sel_obsplugin <- selitettavat_muuttujat_obsplugin_koodit[sel]
-#         sel_AQU <- selitettavat_muuttujat_AQU_koodit[sel]
-#         sel_CLDB <- selitettavat_muuttujat_CLDB_koodit[sel]
-#         station_id <- station_numbers[station_number_index]
-#         aseman_nimi <- station_idt_conversion$station_name[which(station_idt_conversion$wmon==station_numbers[station_number_index])]
-#         
-#         havainnot <- hae_havainnot_GTS_Brainstorm_AQU(fmisid,parameter,sel_obsplugin,sel_AQU,sel_CLDB,station_id,aseman_nimi,onko_lentosaahavaintoja)      
-#         rm(fmisid)
-#         rm(parameter)
-#         rm(sel_obsplugin)
-#         rm(sel_AQU)
-#         rm(sel_CLDB)
-#         
-#         # Tarkistetaan löytyykö havaintoja vai ei
-#         # Tähän asti havaintoja voidaan hakea, vaikkei niitä tietokannassa olisikaan. Jos aseman osalta ei ole ollenkaan havaintoja (tai on naurettavan vähän), hypätään for-loopissa seuraavaan indeksiin.
-#         if (length(havainnot[,1])<ennuste_havaintoparien_minimimaara) {
-#           # Hypätään loopissa seuraavaan ajanjaksoon, koska havaintodataa ei ole.
-#           print(paste("havaintodataa --wmon_",station_id," ",aseman_nimi,"-- ei löydy!",sep=""))
-#           # Otetaan pois havaintodata
-#           rm(havainnot)
-#           rm(station_id)
-#           rm(aseman_nimi)
-#           
-#         } else {
-#           rm(station_id)
-#           rm(aseman_nimi)
 #           # SAVE DATA LENGTH LATER IN SCRIPT
 #           # Tallennetaan jälki, että havaintoja löytyy ainakin jotain
 #           station_numbers_data_status$havaintojen_pituus[station_number_index] <- dim(havainnot)[1]
@@ -294,41 +142,6 @@ for (station_number_index in station_numbers_indices) {
 #           station_numbers_data_status$mallidatan_pituus[station_number_index] <- dim(eval(parse(text=mallidatamatriisi)))[1]
 #           
 #           for (k in c(1)) {
-#             
-#       #       ### MALLIKENTTIEN HAKU MOS-TIETOKANNASTA ###
-#       #       station_id <- station_numbers[station_number_index]
-#       #       aseman_nimi <- station_idt_conversion$station_name[which(station_idt_conversion$wmon==station_numbers[station_number_index])]
-#       #       analyysiaika <- analyysiajat[k]
-#       #       mallidatamatriisi <- paste("station_",station_id,"_",analyysiaika,sep="")
-#       #       
-#       #       source("hae_mallidata_MOS_for_one_analysis_hour.R")
-#       #       komento <- paste(mallidatamatriisi," <- hae_mallidata_MOS_for_one_analysis_hour(station_id,aseman_nimi,analyysiaika,mallidatamatriisi)",sep="") 
-#       #       eval(parse(text=komento))
-#       #       rm(komento)
-#       #       rm(station_id)
-#       #       rm(aseman_nimi)
-#       #       rm(analyysiaika)
-#             
-#       #       source("hae_mallidata_MOS_individual_analysis_times.R")
-#       #       komento <- paste(mallidatamatriisi,"_1kerrallaan <- hae_mallidata_MOS_individual_analysis_times(station_id,aseman_nimi,analyysiaika,mallidatamatriisi,sarja)",sep="") 
-#       #       eval(parse(text=komento))
-#       #       rm(komento)
-#         
-#       
-#         
-#       #       station_2974_00 <- station_2974_00[order(station_2974_00$forecast_time,station_2974_00$forecast_period,station_2974_00$param_id,station_2974_00$level_value),]
-#       #       station_2974_00_1kerrallaan <- station_2974_00_1kerrallaan[order(station_2974_00_1kerrallaan$forecast_time,station_2974_00_1kerrallaan$forecast_period,station_2974_00_1kerrallaan$param_id,station_2974_00_1kerrallaan$level_value),]
-#       #       jape <- station_2974_00$param_id[1:551157]-station_2974_00_1kerrallaan$param_id[1:551157]
-#         
-#         
-#       
-#             
-#             
-#       #     ennustusjaksot <- c(1,3,5,7,9,11,13,15,17,19,21,23,25,29,33,37,41,45,49,51,53,55,57,59,61,63,65)
-#       #     ennustusjaksot <- (1:length(forecast_periods))
-#       #     ennustusjaksot <- c(9,17,25,33,41,49,53,57,61,65) # 1 per päivä
-#             
-#             
 #             for (kausi in c(1)) { # Kaudet järjestyksessä talvi,kevät,kesä,syksy
 #               # Talvi: (sovellusjakso Joulu-Helmi 12-02), koulutusjakso 11-03
 #               if (kausi==1) {

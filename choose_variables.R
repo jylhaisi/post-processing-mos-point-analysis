@@ -7,7 +7,7 @@ choose_variables <- function (variable_list,table_name,db) {
   
   # With this function the most common uses for creating variable lists are defined:
   # -predictor variable_list for MOS training (data retrieved from MOS table previ_ecmos_narrow_v). Used derived variables are included in the first argument
-  # example: choose_variables(c("allmodelvars_1prec_derived_noBAD_noZW_RH2","T2^2","DECLINATION"),"previ_ecmos_narrow_v","MOS")
+  # example: choose_variables(c("allmodelvars_1prec_derived_noBAD_noZW_RH2","T2_2","DECLINATION"),"previ_ecmos_narrow_v","MOS")
   # -predictand variable_list for MOS training (data retrieved from CLDB tables observation_data_v1 and weather_data_qc, option "both" retrieves data from both tables for the station list at question). In case of table_name %in% c("weather_data_qc","both"), give variable names according to rownames(all_variable_lists[["mapping_parameters_all"]])! If you retrieve data from Finnish stations and from variables outside mapping_parameters_all (observation_data_v1), use db-specific variable numbers all_variable_lists$CLDB_observation_data_v1$measurand_id!
   # example: choose_variables("estimated_variables","both","CLDB")
   # -DMO data from verif db (data retrieved from verif db tables "producer_station", second argument of tables indicate producers which are used)
@@ -28,13 +28,13 @@ choose_variables <- function (variable_list,table_name,db) {
     ## _noZW
     # No pressure level Z/W
     ## _RH2
-    # Transforming model RH to RH^2
+    # Transforming model RH to RH_2
     ## _RH3
-    # Transforming model RH to RH^3
+    # Transforming model RH to RH_3
     ## _RH4
-    # Transforming model RH to RH^4
+    # Transforming model RH to RH_4
     ## _RH5
-    # Transforming model RH to RH^5
+    # Transforming model RH to RH_5
     ## _surface
     # Only surface variables
     ## _pressurelevels
@@ -132,22 +132,22 @@ choose_variables <- function (variable_list,table_name,db) {
         variable_name <- variable_name[-grep("Z_",variable_name)]
         variable_name <- variable_name[-grep("W_",variable_name)]
       }
-      # Transforming RH to RH^2
+      # Transforming RH to RH_2
       if (length(grep("RH2",variable_list[1]))>0) {
         replaceable <- variable_name[grep("RH_",variable_name)]
-        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH^2",replaceable)
+        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH_2",replaceable)
         rm(replaceable)
       }
-      # Transforming RH to RH^3
+      # Transforming RH to RH_3
       if (length(grep("RH3",variable_list[1]))>0) {
         replaceable <- variable_name[grep("RH_",variable_name)]
-        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH^3",replaceable)
+        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH_3",replaceable)
         rm(replaceable)
       }
-      # Transforming RH to RH^4
+      # Transforming RH to RH_4
       if (length(grep("RH4",variable_list[1]))>0) {
         replaceable <- variable_name[grep("RH_",variable_name)]
-        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH^4",replaceable)
+        variable_name[grep("RH_",variable_name)] <- gsub("RH","RH_4",replaceable)
         rm(replaceable)
       }
       # All surface variables, no pressure level variables
@@ -218,8 +218,8 @@ choose_variables <- function (variable_list,table_name,db) {
     rm(time_laggedvars)
     rm(derived_vars)
     
-    # If variable list has RH_SURF or RH_SURF^2, remove D2 from variable list
-    if (sum(c("RH_SURF","RH_SURF^2") %in% variable_name) > 0) {
+    # If variable list has RH_SURF or RH_SURF_2, remove D2 from variable list
+    if (sum(c("RH_SURF","RH_SURF_2") %in% variable_name) > 0) {
       variable_name <- variable_name[variable_name!="D2"]
     }
   }

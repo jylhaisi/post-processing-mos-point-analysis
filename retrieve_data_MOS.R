@@ -20,15 +20,16 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   
   # Generate variable list for previ_ecmos_narrow_v, which is actually retrieved.
   # Including those DMO variables which are needed for the calculation of derived variables:
-  # -If previ_ecmos_narrow_v variable list contains RH^2/RH^3/RH^4/RH^5, make sure that RH from pressure levels are retrieved.
-  # -If surface RH, surface T2 and D2 are both needed
+  # -If previ_ecmos_narrow_v variable list contains RH_2/RH_3/RH_4/RH_5, make sure that RH from pressure levels are retrieved.
+  # -If surface RH, surface T2 and D2 are both needed (escaping ^ would be //^)
   if (sum(retrieved_vars[["table_name"]] == "previ_ecmos_narrow_v")>0) {
     retrieved_vars_previ_ecmos_narrow_v <- subset(retrieved_vars,table_name=="previ_ecmos_narrow_v")
     retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_SURF","D2",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
     retrieved_vars_previ_ecmos_narrow_v <- rbind(retrieved_vars_previ_ecmos_narrow_v,c("T2","previ_ecmos_narrow_v","MOS"))
-    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH\\^2","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
-    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH\\^3","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
-    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH\\^4","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
+    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_2$","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
+    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_3$","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
+    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_4$","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
+    retrieved_vars_previ_ecmos_narrow_v[["variable_name"]] <- gsub("RH_5$","RH",retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])
   }
   # Unique retrieved variables using database/table-specific -names (so not including derived variables)
   retrieved_vars_previ_ecmos_narrow_v <- unique(subset(ECMWF,variable_EC %in% retrieved_vars_previ_ecmos_narrow_v[["variable_name"]])[c("param_id","level_value")])
@@ -252,6 +253,8 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   retrieved_data$value <- round(retrieved_data$value,digits=2)
   # Changing analysis_time "0" to "00"
   retrieved_data$analysis_time[which(retrieved_data$analysis_time=="0")] <- "00"
+  # Changing level_value from integer to character
+  retrieved_data$level_value <- as.character(retrieved_data$level_value)
   
   all_retrieved_data[["previ_ecmos_narrow_v"]] <- retrieved_data
   rm(retrieved_data)

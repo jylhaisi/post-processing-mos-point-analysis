@@ -13,6 +13,8 @@ library(operator.tools)
 library(stringr)
 library(dplyr)
 library(tidyr)
+library(purrr)
+library(stringi)
 # Graphical packages
 library(ggplot2)
 library(gridExtra)
@@ -54,7 +56,7 @@ load(file="../constant_lists/variable_lists/read_in_aviation_lists.Rdata")
 
 # Loading updateable station location history table defining fmisid-wmon conversion. Removing all duplicate wmo numbers (preserving only the first (latest) station location). -> wmon-numbers are unique, but several fmisids can be found. Most of these stations are Finnish wmon5xxx changes to newer wmon2xxx stations (duplicated() picks older stations, match() picks newer stations)
 # This station list is not checked for location consistency between mos station locations! It is narrowed down based on requirements of pre-defined station lists.
-station_idt_conversion <- read.csv("../constant_lists/database_tables/CLDB_linked_to_MOS/wmostations_distinct_realtime_shortened_csv.txt",header = TRUE,stringsAsFactors = FALSE)
+station_idt_conversion <- read.csv("../constant_lists/station_lists/station_idt_conversion.csv",header = TRUE,stringsAsFactors = FALSE)
 station_idt_conversion <- station_idt_conversion[!duplicated(station_idt_conversion$wmon),]
 
 
@@ -82,3 +84,5 @@ source("../point_data_analysis/retrieve_data_all.R")
 source("../point_data_analysis/retrieve_data_MOS.R")
 source("../point_data_analysis/retrieve_data_verif.R")
 source("../point_data_analysis/retrieve_data_CLDB.R")
+source("functions_fitting.R")
+source("toMOSutils_functions_glm.R")
