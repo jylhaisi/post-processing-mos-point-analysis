@@ -8,13 +8,16 @@ source("load_libraries_tables_and_open_connections.R")
 # KNOWN ISSUES: TAMINDAILY -RETRIEVAL AND OTHER DERIVED VARS NEED TO BE CHANGED SO THAT DERIVED_VARIABLE NAME IS CHANGED INSTEAD OF DB-SPECIFIC NAME
 # CREATE A FUNCTION THAT "MELTS" "observation_data_v1" and "weather_data_qc" FROM CLDB LIST INTO A COMMON DATA FRAME!
 # For TAMAX12H/TAMIN12H values InterpolateMinMaxValues generates multiple NA-values for those 12h timeslots that have missing value for the variable.
+# Improve data retrieval scripts:
+# mos_trace_v: there's never really a need to download just a specific source_param_name, but the retrieval is based on target_param_name. As an additional definition in the retrieval it has to be defined whether 1) all corresponding source_values 2) just the one source_value of the same variable 3) no source_values are retrieved at the same time
+# Smartmet server: Generate mapping tables for this data source. Maybe replace retrieve_data_CLDB with retrievals from Smartmet server
 
 # User-defined variables
 timestamps_series <- define_time_series()
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 mos_label <- paste("MOS_ECMWF_250416")
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
-derived_variables <- NA # c("DECLINATION")
+derived_variables <- "RH_SURF"  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
 station_numbers <- c(1406,2978) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists

@@ -147,17 +147,20 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
         if (derived_retrieved_all[derived_var_index,"MOS_previ_ecmos_narrow_v_param_id"] != "") {
           derived_retrieved <- subset(retrieved_data, ((param_id %in% as.integer(derived_retrieved_all[derived_var_index,"MOS_previ_ecmos_narrow_v_param_id"])) & (level_value %in% as.integer(derived_retrieved_all[derived_var_index,"MOS_previ_ecmos_narrow_v_level"]))))
         }
-        # Relative humidity
+        # Relative humidity (clculated using the same method as in STU (method2 in https://github.com/fmidev/himan/blob/master/doc/plugin-relative_humidity.md). This gives ~0.1% smaller values compared to method below, with maximum of maximum 0.5% RH)
         if (length(grep("RH_SURF",rownames(derived_retrieved_all)[derived_var_index]))==1) {
           derived_retrieved <- subset(retrieved_data, (param_id==153) & (level_value==0))
           SURF_D2_matching <- subset(retrieved_data, (param_id==162) & (level_value==0))
           SURF_D2_matching <- SURF_D2_matching[row.match(derived_retrieved[,c("station_id","analysis_time","forecast_time","forecast_period","level_value")],SURF_D2_matching[,c("station_id","analysis_time","forecast_time","forecast_period","level_value")]),]
-          condensing_humidity <- 6.112*exp((17.62*derived_retrieved$value)/(derived_retrieved$value+243.12))
-          specific_humidity <- 6.112*exp((17.62*SURF_D2_matching$value)/(SURF_D2_matching$value+243.12))
-          derived_retrieved[,"value"] <- 100*(specific_humidity/condensing_humidity)
+          derived_retrieved[,"value"] <- derived_retrieved[,"value"] - 273.15
+          SURF_D2_matching[,"value"] <- SURF_D2_matching[,"value"] - 273.15
+          derived_retrieved[,"value"] <- 100 * (exp(1.8+17.27*(SURF_D2_matching[,"value"] / (SURF_D2_matching[,"value"] + 237.3)))) / (exp(1.8 + 17.27 * (derived_retrieved[,"value"] / (derived_retrieved[,"value"] + 237.3))))
+          # condensing_humidity <- 6.112*exp((17.62*derived_retrieved$value)/(derived_retrieved$value+243.12))
+          # specific_humidity <- 6.112*exp((17.62*SURF_D2_matching$value)/(SURF_D2_matching$value+243.12))
+          # derived_retrieved[,"value"] <- 100*(specific_humidity/condensing_humidity)
+          # rm(condensing_humidity)
+          # rm(specific_humidity)
           rm(SURF_D2_matching)
-          rm(condensing_humidity)
-          rm(specific_humidity)
         }
         # if derived_param_id has six numbers, raise to the power
         if (nchar(derived_retrieved_all[derived_var_index,"derived_param_id"])==6) {
