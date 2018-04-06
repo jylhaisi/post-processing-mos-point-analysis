@@ -8,6 +8,9 @@ source("load_libraries_tables_and_open_connections.R")
 # KNOWN ISSUES: TAMINDAILY -RETRIEVAL AND OTHER DERIVED VARS NEED TO BE CHANGED SO THAT DERIVED_VARIABLE NAME IS CHANGED INSTEAD OF DB-SPECIFIC NAME
 # CREATE A FUNCTION THAT "MELTS" "observation_data_v1" and "weather_data_qc" FROM CLDB LIST INTO A COMMON DATA FRAME!
 # For TAMAX12H/TAMIN12H values InterpolateMinMaxValues generates multiple NA-values for those 12h timeslots that have missing value for the variable.
+# Improve data retrieval scripts:
+# mos_trace_v: there's never really a need to download just a specific source_param_name, but the retrieval is based on target_param_name. As an additional definition in the retrieval it has to be defined whether 1) all corresponding source_values 2) just the one source_value of the same variable 3) no source_values are retrieved at the same time
+# Smartmet server: Generate mapping tables for this data source. Maybe replace retrieve_data_CLDB with retrievals from Smartmet server
 
 # User-defined variables
 timestamps_series <- define_time_series()
