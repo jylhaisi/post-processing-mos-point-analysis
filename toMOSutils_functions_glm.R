@@ -287,7 +287,7 @@ FetchData_season_analysis_time <- function(station_id, df_mos_aa_fp, obs_season_
   # }
   # rm(pp)
   if (station_type == 1) {
-      df_obs <- subset(obs_season_data, measurand_id == param_id)[which(names(obs_season_data) %!in% "parameter")] # dplyr::filter(obs_season_data, parameter == param_id)
+      df_obs <- subset(obs_season_data, parameter == param_id)[which(names(obs_season_data) %!in% "parameter")] # dplyr::filter(obs_season_data, parameter == param_id)
       # df_obs <-  dplyr::select(df_obs, -c(parameter))
   } else { 
       df_obs <- subset(obs_season_data, measurand_id == param_id)[which(names(obs_season_data) %!in% "measurand_id")] # (dplyr::filter(obs_season_data, measurand_id == param_id)

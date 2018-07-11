@@ -10,20 +10,21 @@ source("load_libraries_tables_and_open_connections.R")
 # For TAMAX12H/TAMIN12H values InterpolateMinMaxValues generates multiple NA-values for those 12h timeslots that have missing value for the variable.
 # Improve data retrieval scripts:
 # mos_trace_v: there's never really a need to download just a specific source_param_name, but the retrieval is based on target_param_name. As an additional definition in the retrieval it has to be defined whether 1) all corresponding source_values 2) just the one source_value of the same variable 3) no source_values are retrieved at the same time
-# Smartmet server: Generate mapping tables for this data source. Maybe replace retrieve_data_CLDB with retrievals from Smartmet server
+# Smartmet server: Generate mapping tables for this data source.
 
 # User-defined variables
 timestamps_series <- define_time_series()
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
-mos_label <- paste("MOS_ECMWF_250416")
+date_string <- format(Sys.time(), "%d%m%y")
+mos_label <- paste0("MOS_ECMWF_",date_string)
 predictor_set <- "only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- "RH_SURF"  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- c(1406,2978) # eval(subs(all_station_lists[[station_list]])) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+station_numbers <- eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
-output_dir <- "/data/statcal/results/MOS_coefficients/test1_purrr/"
+output_dir <- paste0("/data/statcal/results/MOS_coefficients/in_progress/",mos_label,"/")
 max_variables <- 10
 fitting_algorithm  <- "GlmnR1"
 fitting_method <- "purrr" # either purrr or glm
@@ -76,7 +77,7 @@ variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]])
 
 for (station_number_index in station_numbers_indices) {
   
-  
+  print(station_numbers[c(station_number_index)])
   
   
   # # DEFINE THIS RESULT PART LATER, INSIDE THE FUNCTION THAT PRODUCES ACTUAL MOS COEFFICIENTS TO A FILE
