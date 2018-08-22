@@ -5,18 +5,13 @@ library(ggplot2)
 library(reshape2)
 library(purrr)
 
-
+# KNOWN ISSUES:
+# minimum sample size check is only implemented in function FitWithGlmnR1purrr! There should be a wrapper that does the sample size check for all the available fitting algorithms!
 
 # packages for different model selection algorithms
-
 library(glmnet)  # glmnet
 
 
-# Data retrieval and splitting
-# We have to see how to use Jussi's function retieve data here retrieve  <- function(variable_list,station_list_retrieved,timestamps_series)
-# function(variable_list,station_list_retrieved,timestamps_series)
-# Above function brings both the observation and MOS data as lists 
-# and we make the dataframes mosdata and observation_data
 
 # Retrieve data from a .csv file
 RetrieveDatafromFile <- function(mos_file, obs_file) {
@@ -33,13 +28,7 @@ RetrieveDatafromFile <- function(mos_file, obs_file) {
 
 
 
-# We have to see how to use Jussi's function retieve data here retrieve  <- function(variable_list,station_list_retrieved,timestamps_series)
-# function(variable_list,station_list_retrieved,timestamps_series)
-# Above function brings both the observation and MOS data as lists 
-# and we make the dataframes mosdata and observation_data
-
-# We split the data based on seasons or years
-
+# Split the data based on seasons or years
 SplitYears <- function(station_id,  mos_df, obs_df) {
   # 
   #  # Args:
@@ -604,21 +593,29 @@ FitWithGlmnR1purrr <- function(training.set, max_variables=10) {
   #
   # Returns:
   #   A list of coefficients
-  training.matrix <- as.matrix(training.set[5:ncol(training.set)])
-  glmnet.model <- suppressWarnings(glmnet(training.matrix[,-1], training.matrix[,1], family = "gaussian", alpha = 1, standardize = TRUE, pmax = max_variables+1))
-  filter.for.folds <- IndexVectorToFilter(SplitDataEvenly(training.matrix[,1]))
-  cv.glmnet.model <- suppressWarnings(cv.glmnet(training.matrix[,-1],training.matrix[,1], alpha = 1, foldid = filter.for.folds, pmax =max_variables+1))
-  best.lambda <- cv.glmnet.model$lambda.min
-  # choosing the best coefficients
-  all.coefficients <- coef(cv.glmnet.model, s = best.lambda)
-  all.coef.names <- rownames(all.coefficients)
-  nonzero.indices <- which(all.coefficients != 0)
-  coefficients <- all.coefficients[nonzero.indices]
-  names(coefficients) <- all.coef.names[nonzero.indices] 
   
-  names(coefficients)[1] <- "Intercept"
-  results <- list("coefficients" = coefficients)
-  return(results)
+  # Checking whether training set contains enough data points
+  if (dim(training.set)[1] > modelobspairs_minimum_sample_size) {
+    training.matrix <- as.matrix(training.set[5:ncol(training.set)])
+    glmnet.model <- suppressWarnings(glmnet(training.matrix[,-1], training.matrix[,1], family = "gaussian", alpha = 1, standardize = TRUE, pmax = max_variables+1))
+    filter.for.folds <- IndexVectorToFilter(SplitDataEvenly(training.matrix[,1]))
+    cv.glmnet.model <- suppressWarnings(cv.glmnet(training.matrix[,-1],training.matrix[,1], alpha = 1, foldid = filter.for.folds, pmax =max_variables+1))
+    best.lambda <- cv.glmnet.model$lambda.min
+    # choosing the best coefficients
+    all.coefficients <- coef(cv.glmnet.model, s = best.lambda)
+    all.coef.names <- rownames(all.coefficients)
+    nonzero.indices <- which(all.coefficients != 0)
+    coefficients <- all.coefficients[nonzero.indices]
+    names(coefficients) <- all.coef.names[nonzero.indices] 
+    
+    names(coefficients)[1] <- "Intercept"
+    results <- list("coefficients" = coefficients)
+    return(results)  
+  } else {
+    results <- list("coefficients" = NA)
+    return(results)
+  }
+  
 }
 
   

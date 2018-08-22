@@ -90,7 +90,8 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
           data2 <- filter(data_response, as.integer(forecast_period) >= 150 & as.integer(forecast_period) <= 240)
           data2 <- CleanData(data2)
           data2$forecast_period <- as.integer(data2$forecast_period)
-          # fit the models
+          # fit the models HERE THE MINIMUM SAMPLE SIZE NEEDS TO BE INCLUDED SO THAT MODEL IS NOT FIT UNLESS ENOUGH DATA!!!
+          # (dim(data_fit)[1] > modelobspairs_minimum_sample_size)
           glm0 <- (data0 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
           glm1 <- (data1 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
           glm2 <- (data2 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))

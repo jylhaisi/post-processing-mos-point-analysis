@@ -531,3 +531,84 @@ The following object is masked from ‘package:insol’:
 + #   print(i)
 + }
 [1] 1001
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1002
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1003
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1006
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1007
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1008
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1010
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1015
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1016
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1017
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1018
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1020
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1023
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1024
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1025
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1026
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1027
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1028
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1033
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1035
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1036
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1037
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1042
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1043
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1044
+[1] "List contains values!"
+[1] "List contains values!"
+[1] 1045
+[1] "List contains values!"
+[1] "List contains values!"
+Error in if (is.null(np) | (np[2] <= 1)) stop("x should be a matrix with 2 or more columns") : 
+  argument is of length zero
+Calls: MOS_training ... <Anonymous> -> <Anonymous> -> .Call -> .f -> FitWithGlmnR1purrr
+Execution halted

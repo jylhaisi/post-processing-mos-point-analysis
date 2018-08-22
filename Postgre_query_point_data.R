@@ -95,43 +95,43 @@ for (station_number_index in station_numbers_indices) {
   # rm(komento)
   # if (length(tallennetut_kertoimet)<10) {
     
-    ### RETRIEVING PREDICTAND DATA ###
-    # WMO-numbers of stations which are retrieved (any wmon station list based on some criteria [such as geographical distance] can be defined here)
-    # station_list_retrieved <- station_numbers[c(station_number_index,station_number_index+1)]
-    # station_list_retrieved <- c(2974)
-    station_list_retrieved <- station_numbers[c(station_number_index)]
-    function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
-    predictand_data <- do.call(retrieve_data_all,function_arguments)
-    # ### RETRIEVING PREDICTOR DATA ###
-    function_arguments <- list(variable_list_predictors,station_list_retrieved,timestamps_series)
-    predictor_data <- do.call(retrieve_data_all,function_arguments)
-    # # ### RETRIEVING ALL DATA ###
-    # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
-    # all_data <- do.call(retrieve_data_all,function_arguments)
-    
-    # # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
-    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
-    # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
-    # predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
-    # predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
-    # unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
-    # rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
-    #
-    # Remove those variables from variable_list which are not found in the database
-    variable_list_predictors <- clean_variable_list(variable_list_predictors,predictor_data)
-    variable_list_predictands <- clean_variable_list(variable_list_predictands,predictand_data)
-    
-    if (!(is.null(predictand_data$CLDB$weather_data_qc))) {  # observation data from foreign station
-      obsdata <- predictand_data$CLDB$weather_data_qc
-      station_type <- 1
-    } else {
-      obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
-      station_type <- 0
-    }
-    mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
-    
-    # Training linear model and saving coefficients to a file
-    MOS_training(station_list_retrieved, obsdata, mosdata, max_variables, fitting_method, fitting_algorithm, station_type, output_dir)
+  ### RETRIEVING PREDICTAND DATA ###
+  # WMO-numbers of stations which are retrieved (any wmon station list based on some criteria [such as geographical distance] can be defined here)
+  # station_list_retrieved <- station_numbers[c(station_number_index,station_number_index+1)]
+  # station_list_retrieved <- c(2974)
+  station_list_retrieved <- station_numbers[c(station_number_index)]
+  function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
+  predictand_data <- do.call(retrieve_data_all,function_arguments)
+  # ### RETRIEVING PREDICTOR DATA ###
+  function_arguments <- list(variable_list_predictors,station_list_retrieved,timestamps_series)
+  predictor_data <- do.call(retrieve_data_all,function_arguments)
+  # # ### RETRIEVING ALL DATA ###
+  # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
+  # all_data <- do.call(retrieve_data_all,function_arguments)
+  
+  # # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
+  # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")
+  # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="WD")
+  # predictand_data[["CLDB"]][["observation_data_v1"]] <- subset(predictand_data[["CLDB"]][["observation_data_v1"]],measurand_id!="73")
+  # predictor_data[["verif"]] <- subset(predictor_data[["verif"]],model!="kalmanecmwf")
+  # unique(predictand_data[["CLDB"]][["weather_data_qc"]][,"parameter"])
+  # rownames(all_variable_lists$mapping_parameters_all)[match(unique(predictand_data[["CLDB"]][["observation_data_v1"]][,"measurand_id"]),all_variable_lists$mapping_parameters_all$CLDB_observation_data_v1)]
+  #
+  # Remove those variables from variable_list which are not found in the database
+  variable_list_predictors <- clean_variable_list(variable_list_predictors,predictor_data)
+  variable_list_predictands <- clean_variable_list(variable_list_predictands,predictand_data)
+  
+  if (!(is.null(predictand_data$CLDB$weather_data_qc))) {  # observation data from foreign station
+    obsdata <- predictand_data$CLDB$weather_data_qc
+    station_type <- 1
+  } else {
+    obsdata <- predictand_data$CLDB$observation_data_v1  # observation data from Finnish stations
+    station_type <- 0
+  }
+  mosdata <- predictor_data$MOS$previ_ecmos_narrow_v    # MOS data 
+  
+  # Training linear model and saving coefficients to a file
+  MOS_training(station_list_retrieved, obsdata, mosdata, max_variables, fitting_method, fitting_algorithm, station_type, output_dir)
     
 
 #       for (sel in variable_indices) {
