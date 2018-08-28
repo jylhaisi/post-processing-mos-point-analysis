@@ -13,7 +13,7 @@ source("load_libraries_tables_and_open_connections.R")
 # Smartmet server: Generate mapping tables for this data source.
 
 # User-defined variables
-timestamps_series <- define_time_series()
+timestamps_series <- define_time_series(begin_date = "2011-12-01 00:00:00 GMT", end_date = Sys.time())
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 date_string <- format(Sys.time(), "%d%m%y")
 mos_label <- paste0("MOS_ECMWF_",date_string)
@@ -72,6 +72,7 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
+station_numbers_indices <- station_numbers_indices[-(1:163)]
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
 
 
@@ -108,6 +109,12 @@ for (station_number_index in station_numbers_indices) {
   # # ### RETRIEVING ALL DATA ###
   # function_arguments <- list(rbind(variable_list_predictors,variable_list_predictands),station_list_retrieved,timestamps_series)
   # all_data <- do.call(retrieve_data_all,function_arguments)
+  
+  # Exit if either obsdata or mosdata is completely NULL, proceed to next index
+  if (is.null(unlist(predictand_data)) | is.null(unlist(predictor_data))) {
+    print(paste0("station number ",station_numbers[c(station_number_index)]," has NULL values for either obs or model data!"))
+    next
+  }
   
   # # For this example, remove some variables from the predictand data (some MOS predictor data was already removed in retrieve_data_MOS.R)
   # predictand_data[["CLDB"]][["weather_data_qc"]] <- subset(predictand_data[["CLDB"]][["weather_data_qc"]],parameter!="TAMIN12H")

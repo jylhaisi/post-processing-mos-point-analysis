@@ -25,6 +25,7 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
   
   # As a first thing, possibly included predictors TAMIN12H/TAMAX12H are interpolated to previous 11 hours so that further interpolation is avoided
   obsdata <- InterpolateMinMaxValues(station_id, obsdata, station_type)
+  
   # Divide data into seasons
   data_seasons <- SplitSeasons(station_id, mosdata, obsdata)
   rm(obsdata)
@@ -34,96 +35,100 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
     mos_season_data <- data_seasons[[1]][[ss]]
     obs_season_data <- data_seasons[[2]][[ss]]
     
-    #Generate the MOS dataframe for a station, for two analysis_times (00 and 12 UTC) and for 64 forecast periods
-    df_mos <- GenerateMOSDataFrame(station_id,mos_season_data)
-  
-    for (aa in analysis_times) {  # Analysis times 00 UTC and 12 UTC 
-      # The predictands in the variable_list_predictands have been checked in the main programme so that at least some data exists
-      for (rr in 1:length(variable_list_predictands$variable_name)) {
-        response_name <- variable_list_predictands$variable_name[rr]
-        if (station_type==1) {
-          response_id <- variable_list_predictands$variable_name[rr]
-        } else {
-          if (variable_list_predictands$table_name[rr]=="observation_data_v1") {
+    # Only proceed to training phase if there is both model and observation data available, at least some of it
+    if (dim(obs_season_data)[1]!=0 & dim(mos_season_data)[1]!=0) {
+      # Generate the MOS dataframe for a station, for two analysis_times (00 and 12 UTC) and for 64 forecast periods
+      df_mos <- GenerateMOSDataFrame(station_id,mos_season_data)
+      
+      for (aa in analysis_times) {  # Analysis times 00 UTC and 12 UTC 
+        # The predictands in the variable_list_predictands have been checked in the main programme so that at least some data exists
+        for (rr in 1:length(variable_list_predictands$variable_name)) {
+          response_name <- variable_list_predictands$variable_name[rr]
+          if (station_type==1) {
             response_id <- variable_list_predictands$variable_name[rr]
           } else {
-            response_id <- all_variable_lists$estimated_parameters$CLDB_observation_data_v1[match(variable_list_predictands$variable_name[rr],rownames(all_variable_lists$estimated_parameters))]
-          }
-        }
-        
-        # Initializing the training matrix for a season, for an analysis
-        coefficients.station.season.atime.fperiod <- as.data.frame(matrix( NA, nrow=length(all_producer_lists$ECMWF$forecast_periods_hours), ncol=((length(variable_list_predictors$variable_name))+1)))
-        rownames(coefficients.station.season.atime.fperiod) <- forecast_periods
-        colnames(coefficients.station.season.atime.fperiod ) <- c("Intercept", variable_list_predictors$variable_name)
-        
-        # Selecting either gl or purrr method. purrr is the default method here.
-        if (fitting_method=="glm") {
-          ##### ordinary glm fitting with a for loop
-          for (ff in forecast_periods) { # There are 64 forecast_periods
-            df_mos_aa_fp <- FetchMOSDataFP(df_mos, aa, ff) 
-            data_response <- FetchData_season_analysis_time(station_id, df_mos_aa_fp, obs_season_data, response_name, response_id, station_type)
-            data_fit <- data_response # data_response$data  # data for a particular response variable
-            # response <- data_response$response
-            data_fit <- CleanData(data_fit)  # Cleaning the NAs
-            # Training the regression model, checking that sample size is large enough
-            if (dim(data_fit)[1] > modelobspairs_minimum_sample_size) {
-              results <- FitWithGlmnR1purrr(training.set = data_fit, max_variables = max_variables) # Train.Model(data_fit, fitting_algorithm, max_variables = 10)
-              stn_coeffs <- results$coefficients
-              coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
+            if (variable_list_predictands$table_name[rr]=="observation_data_v1") {
+              response_id <- variable_list_predictands$variable_name[rr]
+            } else {
+              response_id <- all_variable_lists$estimated_parameters$CLDB_observation_data_v1[match(variable_list_predictands$variable_name[rr],rownames(all_variable_lists$estimated_parameters))]
             }
-            # print(ff)
           }
-          rm(ff)
-        } else {
-          ##### purrr fitting
-          df_mos_aa <- FetchMOSDataAA(df_mos, aa) 
-          data_response <- FetchData_season_analysis_time(station_id, df_mos_aa, obs_season_data, response_name, response_id, station_type)
           
-          #### Different forecast periods have different number of predictors. Separate data accordingly.
-          ### 00, 03-144 and 150-240
-          data0 <- filter(data_response, as.integer(forecast_period) == 0)
-          data0 <- CleanData(data0)
-          data0$forecast_period <- as.integer(data0$forecast_period)
-          data1 <- filter(data_response, as.integer(forecast_period) >= 03  & as.integer(forecast_period) <= 144)
-          data1 <- CleanData(data1)
-          data1$forecast_period <- as.integer(data1$forecast_period)
-          data2 <- filter(data_response, as.integer(forecast_period) >= 150 & as.integer(forecast_period) <= 240)
-          data2 <- CleanData(data2)
-          data2$forecast_period <- as.integer(data2$forecast_period)
-          # fit the models HERE THE MINIMUM SAMPLE SIZE NEEDS TO BE INCLUDED SO THAT MODEL IS NOT FIT UNLESS ENOUGH DATA!!!
-          # (dim(data_fit)[1] > modelobspairs_minimum_sample_size)
-          glm0 <- (data0 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
-          glm1 <- (data1 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
-          glm2 <- (data2 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
-          glm_model <- do.call(c,list(glm0,glm1,glm2))
-          for (i in 1:length(glm_model)) { 
-            ff <- names(glm_model)[i]
-            if (nchar(ff) == 1) {
-              ff <- paste0("0", ff)
+          # Initializing the training matrix for a season, for an analysis
+          coefficients.station.season.atime.fperiod <- as.data.frame(matrix( NA, nrow=length(all_producer_lists$ECMWF$forecast_periods_hours), ncol=((length(variable_list_predictors$variable_name))+1)))
+          rownames(coefficients.station.season.atime.fperiod) <- forecast_periods
+          colnames(coefficients.station.season.atime.fperiod ) <- c("Intercept", variable_list_predictors$variable_name)
+          
+          # Selecting either gl or purrr method. purrr is the default method here.
+          if (fitting_method=="glm") {
+            ##### ordinary glm fitting with a for loop
+            for (ff in forecast_periods) { # There are 64 forecast_periods
+              df_mos_aa_fp <- FetchMOSDataFP(df_mos, aa, ff) 
+              data_response <- FetchData_season_analysis_time(station_id, df_mos_aa_fp, obs_season_data, response_name, response_id, station_type)
+              data_fit <- data_response # data_response$data  # data for a particular response variable
+              # response <- data_response$response
+              data_fit <- CleanData(data_fit)  # Cleaning the NAs
+              # Training the regression model, checking that sample size is large enough
+              if (dim(data_fit)[1] > modelobspairs_minimum_sample_size) {
+                results <- FitWithGlmnR1purrr(training.set = data_fit, max_variables = max_variables) # Train.Model(data_fit, fitting_algorithm, max_variables = 10)
+                stn_coeffs <- results$coefficients
+                coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
+              }
+              # print(ff)
             }
-            stn_coeffs <- glm_model[[i]]$coefficients
-            coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
             rm(ff)
-            rm(stn_coeffs)
+          } else {
+            ##### purrr fitting
+            df_mos_aa <- FetchMOSDataAA(df_mos, aa) 
+            data_response <- FetchData_season_analysis_time(station_id, df_mos_aa, obs_season_data, response_name, response_id, station_type)
+            
+            #### Different forecast periods have different number of predictors. Separate data accordingly.
+            ### 00, 03-144 and 150-240
+            data0 <- filter(data_response, as.integer(forecast_period) == 0)
+            data0 <- CleanData(data0)
+            data0$forecast_period <- as.integer(data0$forecast_period)
+            data1 <- filter(data_response, as.integer(forecast_period) >= 03  & as.integer(forecast_period) <= 144)
+            data1 <- CleanData(data1)
+            data1$forecast_period <- as.integer(data1$forecast_period)
+            data2 <- filter(data_response, as.integer(forecast_period) >= 150 & as.integer(forecast_period) <= 240)
+            data2 <- CleanData(data2)
+            data2$forecast_period <- as.integer(data2$forecast_period)
+            # fit the models HERE THE MINIMUM SAMPLE SIZE NEEDS TO BE INCLUDED SO THAT MODEL IS NOT FIT UNLESS ENOUGH DATA!!!
+            # (dim(data_fit)[1] > modelobspairs_minimum_sample_size)
+            glm0 <- (data0 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm1 <- (data1 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm2 <- (data2 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm_model <- do.call(c,list(glm0,glm1,glm2))
+            for (i in 1:length(glm_model)) { 
+              ff <- names(glm_model)[i]
+              if (nchar(ff) == 1) {
+                ff <- paste0("0", ff)
+              }
+              stn_coeffs <- glm_model[[i]]$coefficients
+              coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
+              rm(ff)
+              rm(stn_coeffs)
+            }
+            rm(i)
           }
-          rm(i)
+          
+          coefficients.station.season.atime.fperiod[is.na(coefficients.station.season.atime.fperiod)] <- 0
+          df <- t(coefficients.station.season.atime.fperiod)
+          # Only saving coefficients into a file if enough forecast_periods are present in the data.
+          # Only single consecutive forecast periods are allowed missing, not two or more
+          chunks <- rle(colSums(df==0)==dim(df)[1])
+          if (length(which(chunks$length>1 & chunks$values==TRUE))==0) {
+            filename = paste0(output_dir,"station_",station_id,"_",aa,"_season",ss,"_",response_name,"_level0_",fitting_algorithm,"_MOS_maxvars",max_variables,".csv")
+            write.csv(df, file=filename)
+            rm(filename)
+          }
+          rm(chunks)
         }
-        
-        coefficients.station.season.atime.fperiod[is.na(coefficients.station.season.atime.fperiod)] <- 0
-        df <- t(coefficients.station.season.atime.fperiod)
-        # Only saving coefficients into a file if enough forecast_periods are present in the data.
-        # Only single consecutive forecast periods are allowed missing, not two or more
-        chunks <- rle(colSums(df==0)==dim(df)[1])
-        if (length(which(chunks$length>1 & chunks$values==TRUE))==0) {
-          filename = paste0(output_dir,"station_",station_id,"_",aa,"_season",ss,"_",response_name,"_level0_",fitting_algorithm,"_MOS_maxvars",max_variables,".csv")
-          write.csv(df, file=filename)
-          rm(filename)
-        }
-        rm(chunks)
+        rm(rr)
       }
-      rm(rr)
+      rm(aa)
     }
-    rm(aa)
+    
   }
   rm(ss)
 } 

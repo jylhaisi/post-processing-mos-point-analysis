@@ -66,7 +66,7 @@ SplitSeasons <- function(station_id, mos_df, obs_df) { # function(station_id, st
 	    
       obs_winter <- (obs_df %>%
                  dplyr::filter(month(obstime) >= 11 | month(obstime) <= 3) %>%
-                   dplyr::select(everything())) 
+                 dplyr::select(everything())) 
                #  dplyr::select(station_id, obstime, measurand_id, value))
 
 	    mos_spring <- (mos_df %>%
