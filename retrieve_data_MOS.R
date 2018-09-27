@@ -108,8 +108,10 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   if (!length(retrieved_data$value[which(retrieved_data$param_id %in% c(196,197,198,187))])==FALSE) {
     retrieved_data$value[which(retrieved_data$param_id %in% c(196,197,198,187))] <- retrieved_data$value[which(retrieved_data$param_id %in% c(196,197,198,187))] / 100
   }
-  
-  
+  # Z (from all level values) is divided by 9,81 m/s2
+  if (!length(retrieved_data$value[which(retrieved_data$param_id %in% c(158))])==FALSE) {
+    retrieved_data$value[which(retrieved_data$param_id %in% c(158))] <- retrieved_data$value[which(retrieved_data$param_id %in% c(158))] / 9.81
+  }
   
   
   
