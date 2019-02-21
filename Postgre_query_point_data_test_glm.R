@@ -20,14 +20,14 @@ mos_label <- paste0("MOS_ECMWF_",date_string)
 predictor_set <- "only_bestvars2" #"NA" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
-station_numbers <- eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
+station_numbers <- c(1406,2978,4124,4165) # eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
-output_dir <- paste0("/data/statcal/results/MOS_coefficients/in_progress/",mos_label,"/") # output_dir check is done in the beginning of the function MOS_training
+output_dir <- paste0("/data/statcal/results/MOS_coefficients/in_progress/test_glm_210219/") # paste0("/data/statcal/results/MOS_coefficients/in_progress/",mos_label,"/")
 max_variables <- 10
 fitting_algorithm  <- "GlmnR1"
-fitting_method <- "purrr" # either purrr or glm
+fitting_method <- "glm" # either purrr or glm
 
 # Defining used variable_lists
 # First column indicates specific variable name in the database table indicated by the second column, third column is the database name.
