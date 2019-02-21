@@ -418,6 +418,8 @@ CleanData <- function(data_cleaned) {
   # Returns:
   #   A cleaned data object of the same form as the input argument
   
+  # 1) remove predictors that have too much missing values
+  # 2) Remove rows that do not have a complete set of predictand+predictor variables
   
   # Split the dataframe data  to two  (1) station_info, seasons, analysis_time, forecast_peroiod,  and timestamps 
   # and (2) station_data which consists of observations and ECMWF model data 
@@ -425,6 +427,7 @@ CleanData <- function(data_cleaned) {
   
   #colnames(data)[c(1:6)] <- c("station", "analysis_time", "forecast_period", "timestamps", "T2Obs")
   
+  # Change the column of the predictor variable from last as the first variable
   station_info <- data_cleaned[,c(1:4)]
   station_data <- data_cleaned[,5:(ncol(data_cleaned))]
   station_data <- station_data[,c(ncol(station_data),1:(ncol(station_data)-1))]
@@ -437,11 +440,11 @@ CleanData <- function(data_cleaned) {
   # the variables are removed only if all the values are NA
   no.of.na <- apply(X = station_data[,], MARGIN = 2, FUN = function(x) sum(is.na(x)))
   
-  # na.tolerance is taken numer of observations
-  #na.tolerance <- no.of.obs/ 3
-  na.tolerance <- no.of.obs
-  # taking only the variables that have no.of.na < na.tolerance
-  good.variables <- which(no.of.na < na.tolerance)
+  # na.tolerance is taken as 0.8* the number of observations (so those predictors that have less than 20% of values missing are preserved)
+  #na.tolerance <- no.of.obs / 3
+  na.tolerance <- no.of.obs * 0.80
+  # taking only the predictor variables that have no.of.na < na.tolerance. Always leave predictand column as it is
+  good.variables <- unique(c(1,which(no.of.na < na.tolerance)))
   
   # removing the variables which that have na.tolerance > no.of.points/4
   # Two variables "FG10_3" (10 meter wind gust in the last 3 hours) and 

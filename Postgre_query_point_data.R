@@ -13,12 +13,12 @@ source("load_libraries_tables_and_open_connections.R")
 # Smartmet server: Generate mapping tables for this data source.
 
 # User-defined variables
-timestamps_series <- define_time_series(begin_date = "2011-12-01 00:00:00 GMT", end_date = Sys.time())
+timestamps_series <- define_time_series(begin_date = "2011-12-01 00:00:00 GMT", end_date = "2018-12-01 00:00:00 GMT") # timestamps_series <- define_time_series(begin_date = "2011-12-01 00:00:00 GMT", end_date = Sys.time())
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 date_string <- format(Sys.time(), "%d%m%y")
 mos_label <- paste0("MOS_ECMWF_",date_string)
-predictor_set <-"NA" #"only_bestvars2" #"allmodelvars_1prec_noBAD_RH2"
-derived_variables <- c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
+predictor_set <- "only_bestvars2" #"NA" #"allmodelvars_1prec_noBAD_RH2"
+derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
 station_numbers <- eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
 obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
@@ -75,6 +75,7 @@ station_numbers_indices <- seq_len(length(station_numbers))
 # station_numbers_indices <- station_numbers_indices[-(1:163)]
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
 
+station_number_index <- 838
 
 for (station_number_index in station_numbers_indices) {
   
@@ -232,7 +233,7 @@ for (station_number_index in station_numbers_indices) {
 # #                 # NÄITÄ SKRIPTEJÄ VOIDAAN AJAA ILMAN havainnot_ja_mallidata -matriisiakin
 # #         
 #                 # Vertaillaan verifiointistatistiikkoja eri aineistojen välillä ja piirretään niistä kuvia
-                source("Postgre_query_point_data_fcst_MOS_verification_all_timesteps_all_stations.R")
+#                 source("Postgre_query_point_data_fcst_MOS_verification_all_timesteps_all_stations.R")
 #                 
 #             
 #                 print(j)

@@ -95,21 +95,23 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
             data2$forecast_period <- as.integer(data2$forecast_period)
             # fit the models HERE THE MINIMUM SAMPLE SIZE NEEDS TO BE INCLUDED SO THAT MODEL IS NOT FIT UNLESS ENOUGH DATA!!!
             # (dim(data_fit)[1] > modelobspairs_minimum_sample_size)
-            glm0 <- (data0 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
-            glm1 <- (data1 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
-            glm2 <- (data2 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = .))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm0 <- (data0 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = ., max_variables = max_variables))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm1 <- (data1 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = ., max_variables = max_variables))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
+            glm2 <- (data2 %>% split(.$forecast_period) %>% purrr::map(~FitWithGlmnR1purrr(training.set = ., max_variables = max_variables))) #purrr::map(~Train.Model(data = ., fitting_algorithm = fitting_algorithm)))
             glm_model <- do.call(c,list(glm0,glm1,glm2))
-            for (i in 1:length(glm_model)) { 
-              ff <- names(glm_model)[i]
-              if (nchar(ff) == 1) {
-                ff <- paste0("0", ff)
+            if (length(glm_model)>0) {
+              for (i in 1:length(glm_model)) { 
+                ff <- names(glm_model)[i]
+                if (nchar(ff) == 1) {
+                  ff <- paste0("0", ff)
+                }
+                stn_coeffs <- glm_model[[i]]$coefficients
+                coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
+                rm(ff)
+                rm(stn_coeffs)
               }
-              stn_coeffs <- glm_model[[i]]$coefficients
-              coefficients.station.season.atime.fperiod[match(ff,forecast_periods),na.omit(match(names(stn_coeffs),colnames(coefficients.station.season.atime.fperiod)))] <- stn_coeffs
-              rm(ff)
-              rm(stn_coeffs)
+              rm(i)
             }
-            rm(i)
           }
           
           coefficients.station.season.atime.fperiod[is.na(coefficients.station.season.atime.fperiod)] <- 0
