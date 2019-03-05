@@ -17,7 +17,7 @@ timestamps_series <- define_time_series(begin_date = "2011-12-01 00:00:00 GMT", 
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 date_string <- format(Sys.time(), "%d%m%y")
 mos_label <- paste0("MOS_ECMWF_",date_string)
-predictor_set <- "only_bestvars2" #"NA" #"allmodelvars_1prec_noBAD_RH2"
+predictor_set <- "only_bestvars2_no_climatology_ensmean" #"NA" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
 station_numbers <- eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.

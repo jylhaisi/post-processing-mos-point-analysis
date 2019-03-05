@@ -47,7 +47,7 @@ choose_variables <- function (variable_list,table_name,db) {
     # Second operative MOS version
     ## only_bestvars2
     # Second operative MOS version, including Tmax/Tmin
-    ## only_surf_T2
+    ## only_surfT2
     # only surface temperature
     ## estimated_variables
     # all variables which are defined in all_variable_lists$estimated_variables, the names of the returned parameters correspond to those of the parameter db (in case of CLDB variable name in first column is used)
@@ -175,6 +175,12 @@ choose_variables <- function (variable_list,table_name,db) {
     if (variable_list[1]=="only_bestvars2") {
       variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T_925","T2_M1","T_925_M1","DECLINATION")
     }
+    # Declination completely replaced with ensmean
+    if (variable_list[1]=="only_bestvars2_no_climatology_ensmean") {
+      variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T2_ENSMEAN","T_925","T2_M1","T_925_M1")
+    }
+    
+    
     # Only surface temperature
     if (variable_list[1]=="only_surfT2") {
       variable_name <- c("T2")

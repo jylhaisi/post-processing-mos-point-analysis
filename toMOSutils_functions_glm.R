@@ -418,48 +418,51 @@ CleanData <- function(data_cleaned) {
   # Returns:
   #   A cleaned data object of the same form as the input argument
   
-  # 1) remove predictors that have too much missing values
-  # 2) Remove rows that do not have a complete set of predictand+predictor variables
+  # 1) Handles exceptions
+  # 2) remove predictors that have too much missing values
+  # 3) Remove rows that do not have a complete set of predictand+predictor variables
   
-  # Split the dataframe data  to two  (1) station_info, seasons, analysis_time, forecast_peroiod,  and timestamps 
-  # and (2) station_data which consists of observations and ECMWF model data 
-  # change the variable names in Finnish to English 
-  
-  #colnames(data)[c(1:6)] <- c("station", "analysis_time", "forecast_period", "timestamps", "T2Obs")
   
   # Change the column of the predictor variable from last as the first variable
   station_info <- data_cleaned[,c(1:4)]
   station_data <- data_cleaned[,5:(ncol(data_cleaned))]
   station_data <- station_data[,c(ncol(station_data),1:(ncol(station_data)-1))]
   
+  # 1) Exceptions
+  # 1.1) ALL ENSMEAN VARIABLES ARE SET MISSING FOR THE FORECAST_PERIODS < 144h
+  if ((length(grep("_ENSMEAN",colnames(station_data)))>0) & (length(which((as.integer(station_info$forecast_period))<144))>0)) {
+    station_data[which((as.integer(station_info$forecast_period))<144),grep("_ENSMEAN",colnames(station_data))] <- NA
+  }
+  
+  # Removing predictors that are either constant or completely missing
+  station_data <- station_data[,which(apply(X = station_data, MARGIN = 2, FUN = function(v) length(unique(v)))!=1)]
+  
+  # Total sample size (no.of.obs) and the number of missing data for each variable (no.of.na)
   no.of.obs <-  nrow(station_data)
-  
-  # first we will delete faulty variables with are NA most of the time
-  
-  # calculating the number of NAs in variables
-  # the variables are removed only if all the values are NA
   no.of.na <- apply(X = station_data[,], MARGIN = 2, FUN = function(x) sum(is.na(x)))
   
-  # na.tolerance is taken as 0.8* the number of observations (so those predictors that have less than 20% of values missing are preserved)
-  #na.tolerance <- no.of.obs / 3
-  na.tolerance <- no.of.obs * 0.80
-  # taking only the predictor variables that have no.of.na < na.tolerance. Always leave predictand column as it is
+  # na.tolerance specifies the maximum number of data points that are allowed missing for an individual predictor
+  # na.tolerance2 specifies the maximum number of data points that are allowed missing for ensmean predictors
+  na.tolerance <- no.of.obs * 0.20
+  na.tolerance2 <- no.of.obs * 0.70
+  
+  # taking only the predictor variables that have no.of.na < na.tolerance. Always leave predictand column as it is (predictand)
   good.variables <- unique(c(1,which(no.of.na < na.tolerance)))
   
-  # removing the variables which that have na.tolerance > no.of.points/4
-  # Two variables "FG10_3" (10 meter wind gust in the last 3 hours) and 
-  # "MX2T3" (Maximum temperature at 2 meter  in the last 3 hours) are removed
+  # EXCEPTION 2: ALLOW ALL ENSMEAN VARIABLES TO TRAINING DATA IF THEY HAVE MORE DATA POINTS THAN na.tolerance2
+  if (length(grep("_ENSMEAN",colnames(station_data)))>0) {
+    column_indices <- grep("_ENSMEAN",colnames(station_data))
+    no.of.na <- as.integer(apply(X = as.data.frame(station_data[,column_indices]), MARGIN = 2, FUN = function(x) sum(is.na(x))))
+    good.variables2 <- unique(which(no.of.na < na.tolerance2))
+    good.variables <- sort(unique(c(good.variables,column_indices[good.variables2])))
+  }
+  
+  # 2) remove predictors that have too much missing values
   station_data <- station_data[, good.variables]
   
-  # searching the complete cases and keeping only them
-  # removing all incomplete observations
+  # 3) Remove rows that do not have a complete set of predictand+predictor variables
   complete.rows <- complete.cases(station_data)
   station_data <- station_data[complete.rows,]
-  
-  # removing constant variables
-  #station_data <- station_data[,apply(X= station_data, MARGIN = 2, FUN = function(v) var(v) != 0)]
-  
-  # retaining only the corresponding complete.rows of station_data in station_info
   station_info <- station_info[complete.rows,]
   
   # returning the cleaned data by combining the new station_info dataframe and the new station_data dataframe
