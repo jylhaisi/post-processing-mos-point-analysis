@@ -175,9 +175,9 @@ choose_variables <- function (variable_list,table_name,db) {
     if (variable_list[1]=="only_bestvars2") {
       variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T_925","T2_M1","T_925_M1","DECLINATION")
     }
-    # Declination completely replaced with ensmean
-    if (variable_list[1]=="only_bestvars2_no_climatology_ensmean") {
-      variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T2_ENSMEAN","T_925","T2_M1","T_925_M1")
+    # Declination completely replaced with ensmean (_MA1 implies the forecast which is run from the previous analysis: in case of EC it is the forecast which is 12h longer, 040419: training for variable T2_ENSMEAN_MA1 is done using variable T2_ENSMEAN -> The variable is found currently in EC native table ../constant_lists/variable_lists/manual_updated/ECMWF_variable_names_and_numbers.csv)
+    if (variable_list[1]=="only_bestvars3") {
+      variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T2_ENSMEAN_MA1","T_925","T2_M1","T_925_M1")
     }
     
     
@@ -194,7 +194,7 @@ choose_variables <- function (variable_list,table_name,db) {
     # Order is: surface vars, pressure level vars, time_lagged vars, derived vars.
     
     # First taking all vars among variable_name which are not non_timelagged surfacevars. Adding derived_vars to this list
-    non_surfacevars <- unique(c(variable_name[grep("_950|_925|_850|_700|_500|_M",variable_name)],derived_variables_all))
+    non_surfacevars <- unique(c(variable_name[grep("_950|_925|_850|_700|_500|_M[1-9]",variable_name)],derived_variables_all))
     # Surface vars is everything else
     if (length(which(variable_name %in% non_surfacevars))>0) {
       surfacevars <- variable_name[-which(variable_name %in% non_surfacevars)]
@@ -210,8 +210,8 @@ choose_variables <- function (variable_list,table_name,db) {
     pressurelevelvars3 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_850$",variable_name)]))]
     pressurelevelvars4 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_700$",variable_name)]))]
     pressurelevelvars5 <- all_variable_lists$MOS$variable_EC[which(all_variable_lists$MOS$variable_EC %in% (variable_name[grep("_500$",variable_name)]))]
-    time_laggedvars <- derived_variables_all[which(derived_variables_all %in% (variable_name[grep("_M",variable_name)]))]
-    derived_vars <- derived_variables_all[which(derived_variables_all %in% variable_name & derived_variables_all %!in% (variable_name[grep("_M",variable_name)]))]
+    time_laggedvars <- derived_variables_all[which(derived_variables_all %in% (variable_name[grep("_M[1-9]",variable_name)]))]
+    derived_vars <- derived_variables_all[which(derived_variables_all %in% variable_name & derived_variables_all %!in% (variable_name[grep("_M[1-9]",variable_name)]))]
     # Concatenating these variable lists and removing inermediate results
     variable_name <- c(surfacevars,pressurelevelvars1,pressurelevelvars2,pressurelevelvars3,pressurelevelvars4,pressurelevelvars5,time_laggedvars,derived_vars)
     rm(non_surfacevars)

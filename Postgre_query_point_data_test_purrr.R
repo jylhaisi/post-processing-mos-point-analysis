@@ -21,7 +21,7 @@ predictor_set <- "only_bestvars2" #"NA" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
 station_numbers <- c(1406,2978,4124,4165) # eval(subs(all_station_lists[[station_list]])) # c(1406,2978) # Retrievals are generated and data is returned based on station wmon-numbers. If using a station list outside mos station list, define the wmon-numbers here.
-obs_interpolation_method <- "spline_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
+obs_interpolation_method <- "linear_interp" # options repeat_previous (na.locf),linear_interp (na.approx),spline_interp (na.spline),no_interp (leave NA values to timeseries as they are). Continuous observations are interpolated, those which not are sublists in all_variable_lists
 max_interpolate_gap <- 6 # This indicates the maximum time in hours to which observation interpolation is applied
 verif_stationtype <- "normal" # In verif db, several stationgroups exist. "normal" assumes stations (2700 <= wmon <= 3000) belonging to stationgroup=1, and all other to stationgroup=9 (other stationgroups outside stationgroup=3 only have a small number of stations to them). Road weather station support needs to be coded later (this needs a road weather station list), currently this can be done manually by putting the stationgroup of interest here manually (e.g. ==3)
 output_dir <- paste0("/data/statcal/results/MOS_coefficients/in_progress/test_purrr_210219/") # paste0("/data/statcal/results/MOS_coefficients/in_progress/",mos_label,"/")
@@ -46,7 +46,7 @@ station_list_retrieved <- "all_stations" # station_numbers[c(station_number_inde
 function_arguments <- list(variable_list_predictands,station_list_retrieved,timestamps_series)
 predictand_data <- do.call(retrieve_data_all,function_arguments)
 
-save.image("/data/ylhaisi/mos_trace_v_obs_retrieval_tests/new_retrievals.RData")
+save.image("/data/ylhaisi/mos_trace_v_obs_retrieval_tests/new_retrievals_linear.RData")
 
 # ##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
 # # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))

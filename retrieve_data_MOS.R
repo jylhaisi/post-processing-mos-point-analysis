@@ -120,7 +120,7 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
   if (length(derived_vars_previ_ecmos_narrow_v)>0) {
     
     # ADDING TIME-LAGGED VARIABLES TO DATA (CURRENTLY ONLY SUPPORTS DIFFERENCE OF ONE IN FORECAST_PERIODS)
-    derived_vars_previ_ecmos_narrow_v_time_lagged <- derived_vars_previ_ecmos_narrow_v[grep("_M",derived_vars_previ_ecmos_narrow_v)]
+    derived_vars_previ_ecmos_narrow_v_time_lagged <- derived_vars_previ_ecmos_narrow_v[grep("_M[1-9]",derived_vars_previ_ecmos_narrow_v)]
     if (length(derived_vars_previ_ecmos_narrow_v_time_lagged)>0) {
       previous_retrieved <- unique(derived_variables_all[match(derived_vars_previ_ecmos_narrow_v_time_lagged,rownames(derived_variables_all)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
       previous_time_step <- subset(retrieved_data, ((match(forecast_period,unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours'])) < length(unlist(all_producer_lists[['ECMWF']]['forecast_periods_hours']))) & (param_id %in% as.integer(previous_retrieved[["MOS_previ_ecmos_narrow_v_param_id"]])) & (level_value %in% as.integer(previous_retrieved[["MOS_previ_ecmos_narrow_v_level"]]))))
@@ -140,8 +140,8 @@ retrieve_data_MOS <- function(variable_list,station_list_retrieved,timestamps_se
     }
     rm(derived_vars_previ_ecmos_narrow_v_time_lagged)
     
-    # ADDING DERIVED MODEL VARIABLES TO DATA (astronomical variables are calculated later as otherwise a lot of duplicate data values would need to be stored to data matrix)
-    derived_vars_previ_ecmos_narrow_v_derived <- derived_vars_previ_ecmos_narrow_v[-grep("_M",derived_vars_previ_ecmos_narrow_v)]
+    # ADDING DERIVED MODEL VARIABLES TO DATA (so excluding time-lagged variables from the derived variables list. Astronomical variables are calculated later as otherwise a lot of duplicate data values would need to be stored to data matrix)
+    derived_vars_previ_ecmos_narrow_v_derived <- derived_vars_previ_ecmos_narrow_v[-grep("_M[1-9]",derived_vars_previ_ecmos_narrow_v)]
     if (length(derived_vars_previ_ecmos_narrow_v_derived)>0) {
       derived_retrieved_all <- unique(derived_variables_all[match(derived_vars_previ_ecmos_narrow_v_derived,rownames(derived_variables_all)),c("MOS_previ_ecmos_narrow_v_param_id","MOS_previ_ecmos_narrow_v_level","derived_param_id")])
       for (derived_var_index in seq(derived_vars_previ_ecmos_narrow_v_derived)) {
