@@ -434,8 +434,8 @@ CleanData <- function(data_cleaned) {
     station_data[which((as.integer(station_info$forecast_period))<144),grep("_ENSMEAN",colnames(station_data))] <- NA
   }
   
-  # Removing predictors that are either constant or completely missing
-  station_data <- station_data[,which(apply(X = station_data, MARGIN = 2, FUN = function(v) length(unique(v)))!=1)]
+  # Removing those predictors that are either constant or completely missing. Always leave predictand column as it is (predictand)
+  station_data <- station_data[,sort(unique(c(1,which(apply(X = station_data, MARGIN = 2, FUN = function(v) length(unique(v)))!=1))))]
   
   # Total sample size (no.of.obs) and the number of missing data for each variable (no.of.na)
   no.of.obs <-  nrow(station_data)
@@ -447,7 +447,7 @@ CleanData <- function(data_cleaned) {
   na.tolerance2 <- no.of.obs * 0.70
   
   # taking only the predictor variables that have no.of.na < na.tolerance. Always leave predictand column as it is (predictand)
-  good.variables <- unique(c(1,which(no.of.na < na.tolerance)))
+  good.variables <- sort(unique(c(1,which(no.of.na < na.tolerance))))
   
   # EXCEPTION 2: ALLOW ALL ENSMEAN VARIABLES TO TRAINING DATA IF THEY HAVE MORE DATA POINTS THAN na.tolerance2
   if (length(grep("_ENSMEAN",colnames(station_data)))>0) {

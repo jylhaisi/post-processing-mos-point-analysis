@@ -175,7 +175,7 @@ choose_variables <- function (variable_list,table_name,db) {
     if (variable_list[1]=="only_bestvars2") {
       variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T_925","T2_M1","T_925_M1","DECLINATION")
     }
-    # Declination completely replaced with ensmean (_MA1 implies the forecast which is run from the previous analysis: in case of EC it is the forecast which is 12h longer, 040419: training for variable T2_ENSMEAN_MA1 is done using variable T2_ENSMEAN -> The variable is found currently in EC native table ../constant_lists/variable_lists/manual_updated/ECMWF_variable_names_and_numbers.csv)
+    # Declination completely replaced with ensmean (_MA1 implies the forecast which is run from the previous analysis: in case of EC it is the forecast which is 12h longer, 040419: training for variable T2_ENSMEAN_MA1 is done using variable T2_ENSMEAN -> The variable is found currently in EC native table ../constant_lists/variable_lists/manual_updated/ECMWF_variable_names_and_numbers.csv. Duplicate MOS variables with same param_id are not allowed in retrieve_data_MOS.R)
     if (variable_list[1]=="only_bestvars3") {
       variable_name <- c("MSL","T2","D2","SKT","U10","V10","LCC","MCC","MN2T3","MX2T3","T2_ENSMEAN_MA1","T_925","T2_M1","T_925_M1")
     }
