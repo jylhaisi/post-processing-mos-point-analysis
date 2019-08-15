@@ -13,6 +13,45 @@ library(glmnet)  # glmnet
 
 
 
+
+# Reading in ready calculated MOS coefficients from files
+ReadInMOScoefficientsFromFile <- function(station_wmon, mos_label, forecast_periods_hours, analysis_hours, used_season, response_name) {
+  coeff_dir <- paste("/data/statcal/results/MOS_coefficients/ready/",mos_label,"/",sep="")
+  coeff_files <- list.files(coeff_dir)
+  coeff_files <- as.character(matrix(coeff_files,nrow=(length(coeff_files)),byrow=T))
+  komento <- paste("saved_coeffs <- coeff_files[grep(\"^station_",station_wmon,"_.._season",used_season,"_",response_name,"\",coeff_files)]",sep="")
+  eval(parse(text=komento))
+  rm(komento)
+  saved_coeffs <- sort(saved_coeffs)
+  rm(coeff_dir)
+  rm(coeff_files)
+  if (length(saved_coeffs)>0) {
+    komento <- paste("coeffs <- read.csv(file=\"/data/statcal/results/MOS_coefficients/ready/",mos_label,"/",saved_coeffs[1],"\")",sep="")
+    eval(parse(text=komento))
+    rm(komento)
+    komento <- paste("coeffs <- abind(coeffs,read.csv(file=\"/data/statcal/results/MOS_coefficients/ready/",mos_label,"/",saved_coeffs[2],"\"),along=3)",sep="")
+    eval(parse(text=komento))
+    rm(komento)
+    dimnames(coeffs)[[1]] <- coeffs[,1,1]
+    coeffs <- coeffs[,-1,]
+    dimnames(coeffs)[[2]] <- forecast_periods_hours
+    dimnames(coeffs)[[3]] <- analysis_hours
+  }
+  rm(saved_coeffs)
+  if (exists("coeffs")) {
+    if (identical(dim(coeffs),as.integer(c(15,65,2)))) {
+      return(coeffs)
+    }
+  } else {
+    warning("no coeffs found for station ",station_wmon," season",used_season," ",response_name)
+  }
+  
+}
+
+
+
+
+
 # Retrieve data from a .csv file
 RetrieveDatafromFile <- function(mos_file, obs_file) {
   mosdata <- read.csv(mos_file)
@@ -420,7 +459,8 @@ CleanData <- function(data_cleaned) {
   
   # 1) Handles exceptions
   # 2) remove predictors that have too much missing values
-  # 3) Remove rows that do not have a complete set of predictand+predictor variables
+  # 3) Removes clear outliers from predictors that might affect fits in the linear regression
+  # 4) Remove rows that do not have a complete set of predictand+predictor variables
   
   
   # Change the column of the predictor variable from last as the first variable
@@ -460,7 +500,21 @@ CleanData <- function(data_cleaned) {
   # 2) remove predictors that have too much missing values
   station_data <- station_data[, good.variables]
   
-  # 3) Remove rows that do not have a complete set of predictand+predictor variables
+  # 3) Removes clear outliers from predictors that might affect fits in the linear regression
+  for (column in 2:dim(station_data)[2]) {
+    analyzed_predictor <- station_data[,column]
+    # For cloudiness this kind of test is needed: If almost all values in history are zero, set also the few remaining ones to zero
+    if ((sum(analyzed_predictor==0) / length(analyzed_predictor))>0.95) {
+      analyzed_predictor[] <- 0
+    }
+    # A really tight outlier test! Replace outliers with sample mean value.
+    analyzed_predictor[(outliers::scores(as.vector(analyzed_predictor), type="t", prob=0.99999))] <- mean(analyzed_predictor,na.rm=TRUE)
+    # Replace original data with the outlier removed data
+    station_data[,column] <- analyzed_predictor
+    rm(analyzed_predictor)
+  }
+  
+  # 4) Remove rows that do not have a complete set of predictand+predictor variables
   complete.rows <- complete.cases(station_data)
   station_data <- station_data[complete.rows,]
   station_info <- station_info[complete.rows,]

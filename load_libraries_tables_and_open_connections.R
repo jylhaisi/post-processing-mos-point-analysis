@@ -35,6 +35,7 @@ library(car)
 library(leaps)   # regsubsets
 library(glmnet)  # glmnet
 library(pls)     # pcr and plsr
+library(outliers) # outlier detection
 # Other
 library(insol)
 library(classInt)

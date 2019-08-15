@@ -66,6 +66,11 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
               df_mos_aa_fp <- FetchMOSDataFP(df_mos, aa, ff) 
               data_response <- FetchData_season_analysis_time(station_id, df_mos_aa_fp, obs_season_data, response_name, response_id, station_type)
               data_fit <- data_response # data_response$data  # data for a particular response variable
+              # PAUSE HERE IF YOU WANT TO ANALYZE STRANGE FUTURE PREDICTIONS!!!
+              #print("pause to analyze data matrix")
+              #Sys.sleep(10)
+              # # READ IN COEFFICIENTS FROM THE FILE
+              # station_coeffs <- ReadInMOScoefficientsFromFile(station_id,mos_label,forecast_periods,analysis_times,ss,response_name)
               # response <- data_response$response
               data_fit <- CleanData(data_fit)  # Cleaning the NAs
               # Training the regression model, checking that sample size is large enough
