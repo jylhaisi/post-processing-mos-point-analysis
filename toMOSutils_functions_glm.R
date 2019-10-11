@@ -503,12 +503,22 @@ CleanData <- function(data_cleaned) {
   # 3) Removes clear outliers from predictors that might affect fits in the linear regression
   for (column in 2:dim(station_data)[2]) {
     analyzed_predictor <- station_data[,column]
-    # For cloudiness this kind of test is needed: If almost all values in history are zero, set also the few remaining ones to zero
-    if ((sum(analyzed_predictor==0) / length(analyzed_predictor))>0.95) {
+    # For cloudiness this kind of test is needed: If almost all (more than 95% defined here) values in history are zero, set also the few remaining ones to zero
+    if ((sum(analyzed_predictor==0,na.rm=TRUE) / length(analyzed_predictor))>0.95) {
       analyzed_predictor[] <- 0
     }
-    # A really tight outlier test! Replace outliers with sample mean value.
-    analyzed_predictor[(outliers::scores(as.vector(analyzed_predictor), type="t", prob=0.99999))] <- mean(analyzed_predictor,na.rm=TRUE)
+    # Outlier tests, replace outliers with NA values (and not sample mean values)
+    # Separately for cloudiness and wind (which can have a heavily skewed distribution)
+    non_NA_indices <- which(!is.na(analyzed_predictor))
+    non_NA_vector <- as.vector(na.omit(analyzed_predictor))
+    if (colnames(station_data)[column] %in% c("LCC", "MCC", "HCC", "TCC", "U10", "V10")) {
+      analyzed_predictor[non_NA_indices[(outliers::scores(non_NA_vector, type="t", prob=0.99999))]] <- NA # mean(analyzed_predictor,na.rm=TRUE)
+    } else {
+      analyzed_predictor[non_NA_indices[(outliers::scores(non_NA_vector, type="t", prob=0.999))]] <- NA # mean(analyzed_predictor,na.rm=TRUE)
+    }
+    rm(non_NA_indices)
+    rm(non_NA_vector)
+    
     # Replace original data with the outlier removed data
     station_data[,column] <- analyzed_predictor
     rm(analyzed_predictor)
