@@ -11,10 +11,14 @@ library(zoo)
 library(pryr)
 library(operator.tools)
 library(stringr)
+library(plyr)
 library(dplyr)
 library(tidyr)
 library(purrr)
 library(stringi)
+library(readr)
+library(data.table)
+library(rlist)
 # Graphical packages
 library(ggplot2)
 library(gridExtra)
@@ -26,6 +30,8 @@ library(maptools)
 library(mapdata)
 library(RColorBrewer)
 library(gpclib)
+library(rworldmap)
+library(gpclib)
 # Statistical packages and different model selection algorithms
 library(mgcv)
 library(verification)
@@ -36,6 +42,7 @@ library(leaps)   # regsubsets
 library(glmnet)  # glmnet
 library(pls)     # pcr and plsr
 library(outliers) # outlier detection
+library(classInt)
 # Other
 library(insol)
 library(classInt)
@@ -46,6 +53,8 @@ require(geosphere)
 # library(Hmisc)
 # User defined data analysis and plotting functions
 library(MOSpointutils)
+
+
 
 # All various station, variable and producer lists are in these lists
 load(file="../constant_lists/station_lists/read_in_station_lists.Rdata")
