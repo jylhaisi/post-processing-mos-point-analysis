@@ -682,7 +682,6 @@ FitWithGlmnR1purrr <- function(training.set, max_variables=10) {
   rm(data_column)
   complete.rows <- complete.cases(training.set)
   training.set <- training.set[complete.rows,]
-  station_info <- station_info[complete.rows,]
   
   # Checking whether training set contains enough data points
   if (dim(training.set)[1] > modelobspairs_minimum_sample_size) {
