@@ -16,7 +16,7 @@ source("load_libraries_tables_and_open_connections.R")
 timestamps_series <- define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time(),"hours"),tz="GMT"),interval_in_hours=3,interval_in_seconds=NA,even_hours=TRUE) # define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time()+864000,"hours"),tz="GMT"),interval_in_hours=3,interval_in_seconds=NA,even_hours=TRUE)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 date_string <- format(Sys.time(), "%d%m%y")
-mos_label <- paste0("MOS_ECMWF_060319") #paste0("MOS_ECMWF_",date_string)
+mos_label <- paste0("MOS_ECMWF_020320") #paste0("MOS_ECMWF_",date_string) #
 predictor_set <- "only_bestvars3" #"only_bestvars2_no_climatology_ensmean" #"NA" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
@@ -27,7 +27,7 @@ verif_stationtype <- "normal" # In verif db, several stationgroups exist. "norma
 output_dir <- paste0("/data/statcal/results/MOS_coefficients/in_progress/",mos_label,"/") # output_dir check is done in the beginning of the function MOS_training
 max_variables <- 10
 fitting_algorithm  <- "GlmnR1"
-fitting_method <- "purrr" # either purrr or glm
+fitting_method <- "purrr" # only purrr method is maintained
 
 # Defining used variable_lists
 # First column indicates specific variable name in the database table indicated by the second column, third column is the database name.
@@ -41,6 +41,7 @@ variable_list_predictors_all <- variable_list_predictors <- choose_variables(c(p
 variable_list_predictands_all <- variable_list_predictands <- choose_variables("estimated_variables","both","CLDB")
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 # variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"),choose_variables(c("PSEA","WS","WD"),"weather_data_qc","CLDB"))
+# variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 
 
 
@@ -74,6 +75,9 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 station_numbers_indices <- seq_len(length(station_numbers))
 # station_numbers_indices <- station_numbers_indices[-(1:163)]
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
+
+####TEMPORARY ROW####
+station_numbers_indices <- station_numbers_indices[station_numbers_indices >= 2160]
 
 for (station_number_index in station_numbers_indices) {
   

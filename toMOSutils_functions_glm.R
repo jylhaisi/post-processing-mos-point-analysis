@@ -664,6 +664,26 @@ FitWithGlmnR1purrr <- function(training.set, max_variables=10) {
   # Returns:
   #   A list of coefficients
   
+  # QC FOR CONSTANT VALUES: SETTING VALUES TO NA IF >10 SONSECUTIVE DATA POINTS HAVE SIMILAR (NON-MISSING) VALUE
+  for (data_column in (5:dim(training.set)[2])) {
+    chunks <- rle(training.set[,data_column])
+    replacable_chunks <- which(chunks$lengths>10 & is.na(chunks$values)==FALSE)
+    if (length(replacable_chunks)>0) {
+      for (replacable_chunk in replacable_chunks) {
+        row1 <- sum(chunks$lengths[0:(replacable_chunk-1)])+1
+        row2 <- sum(chunks$lengths[1:(replacable_chunk)])
+        training.set[row1:row2,data_column] <- NA
+      }
+      rm(replacable_chunk)
+    }
+    rm(chunks)
+    rm(replacable_chunks)
+  }
+  rm(data_column)
+  complete.rows <- complete.cases(training.set)
+  training.set <- training.set[complete.rows,]
+  station_info <- station_info[complete.rows,]
+  
   # Checking whether training set contains enough data points
   if (dim(training.set)[1] > modelobspairs_minimum_sample_size) {
     training.matrix <- as.matrix(training.set[5:ncol(training.set)])

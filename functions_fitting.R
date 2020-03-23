@@ -57,7 +57,7 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
           # Initializing the training matrix for a season, for an analysis
           coefficients.station.season.atime.fperiod <- as.data.frame(matrix( NA, nrow=length(all_producer_lists$ECMWF$forecast_periods_hours), ncol=((length(variable_list_predictors$variable_name))+1)))
           rownames(coefficients.station.season.atime.fperiod) <- forecast_periods
-          colnames(coefficients.station.season.atime.fperiod ) <- c("Intercept", variable_list_predictors$variable_name)
+          colnames(coefficients.station.season.atime.fperiod) <- c("Intercept", variable_list_predictors$variable_name)
           
           # Selecting either gl or purrr method. purrr is the default method here.
           if (fitting_method=="glm") {
@@ -124,7 +124,7 @@ MOS_training <- function(station_id, obsdata, mosdata, max_variables, fitting_me
           # Only saving coefficients into a file if enough forecast_periods are present in the data.
           # Only single consecutive forecast periods are allowed missing, not two or more
           chunks <- rle(colSums(df==0)==dim(df)[1])
-          if (length(which(chunks$length>1 & chunks$values==TRUE))==0) {
+          if (length(which(chunks$lengths>1 & chunks$values==TRUE))==0) {
             filename = paste0(output_dir,"station_",station_id,"_",aa,"_season",ss,"_",response_name,"_level0_",fitting_algorithm,"_MOS_maxvars",max_variables,".csv")
             write.csv(df, file=filename)
             rm(filename)
