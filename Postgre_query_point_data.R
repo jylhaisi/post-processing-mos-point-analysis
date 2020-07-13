@@ -71,6 +71,15 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
 # retrieved_data <- do.call(retrieve_data_all,function_arguments)
 
+# ##### EXAMPLE FOR RETRIEVING ONLY PRECIPITATION FROM ONE FOREIGN STATION FROM CLDB #####
+# timestamps_series <- define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time(),"hours"),tz="GMT"),interval_in_hours=1,interval_in_seconds=NA,even_hours=TRUE) # define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time()+864000,"hours"),tz="GMT"),interval_in_hours=3,interval_in_seconds=NA,even_hours=TRUE)
+# variable_list_retrieved <- rbind(choose_variables(c("PR_6H","PR_1H"),"weather_data_qc","CLDB"))
+# station_list_retrieved <- 8042
+# station_list_retrieved <- station_list_retrieved
+# station_list_retrieved <- station_list_retrieved$station_id
+# function_arguments <- list(variable_list_retrieved,station_list_retrieved,timestamps_series)
+# retrieved_data <- do.call(retrieve_data_all,function_arguments)
+
 # Defining running indices from lists
 station_numbers_indices <- seq_len(length(station_numbers))
 # station_numbers_indices <- station_numbers_indices[-(1:163)]
