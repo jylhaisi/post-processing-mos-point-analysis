@@ -25,7 +25,7 @@ Dependency: Repository github/fmidev/post-processing-constant-lists needs to be 
 * By default, the used predictor variables are defined at rownames(all_variable_lists[["estimated_parameters"]]). Modify this list at the script ../constant_lists/list_generate_scripts/create_and_plot_lists.R if you want to add more predictand variables to read_in_variable_lists.Rdata. These variables are iterated through one by one at function MOS_training().
 2. From command line, give the command
 ```console
-R CMD Postgre_query_point_data.R Postgre_query_point_data.Rout
+R CMD BATCH Postgre_query_point_data.R Postgre_query_point_data.Rout
 ```
 3. Implementation of the trained coefficients to operative environment is not currently automated, but is manually done like in (https://jira.fmi.fi/browse/STU-12862). New coefficients by default go to dev-version and it the verif results look good the current dev-version should be changed to operative.
 4. Update Wiki-page https://wiki.fmi.fi/display/PAK/MOS-versionumeroinnit whenever changes in the coefficients take place.
@@ -64,7 +64,10 @@ R CMD Postgre_query_point_data.R Postgre_query_point_data.Rout
 * mos_trace_v is not supported atm
 * aviation db retrievals are not supported atm
 * new verification db retrievals are not supported atm
-* fmisid numbers are not used atm, but only WMON numbers
+* fmisid numbers are not used atm, but only WMON numbers. fmisid numbers are needed for e.g.
+  * roadweather stations
+  * netatmo stations
+  * Spain/Canary island stations
 * max_variables parameter is not passed on the training functions!
 * fitting_algorithm is not passed on to function Train.Model(), but is manually defined in MOS_training()!
 * Implementation of parallel retrievals to MOS training data (https://jira.fmi.fi/browse/PDTK-5)
