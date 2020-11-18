@@ -1,5 +1,7 @@
-# post-processing-mos-point-analysis
-This program contains MOS (Model Output Statistics) training code used at FMI
+# MOS (Model Output Statistics) training code used at FMI
+(/fmidev/post-processing-mos-point-analysis)
+Local Git repo can also be found at devmos.fmi.fi:/data/statcal/R_projects/point-data-analysis.git/
+This main training code heavily depends on the related mapping lists, which can be found at (fmidev/post-processing-constant-lists)
 
 ## Dependencies and directory
 This repo should be cloned locally to directory point_data_analysis and run from there.
@@ -56,23 +58,25 @@ R CMD BATCH Postgre_query_point_data.R Postgre_query_point_data.Rout
 * https://jira.fmi.fi/issues/?jql=project%20%3D%20POSSE%20AND%20statusCategory%20%3D%20Done%20order%20by%20updated%20DESC
 
 
-## Some (but obviously not all!) development ideas
-* files toMOSutils_functions_glm.R and functions_fitting could be combined in a neater way with each other
-* purrr training method is currently implemented for model GlmR1 and not for any of the other methods available at toMOSutils_functions_glm.R
-* minimum sample size check is only implemented in function FitWithGlmnR1purrr!
-* Sensitivity tests comparing different modeling strategies (like those at https://jira.fmi.fi/browse/POSSE-220) are missing from this code. They only exist for the legacy code located at (devmos / vorlon_point_legacy / Postgre_query_point_data_MOS_crossvalidation.R)
-* mos_trace_v is not supported atm
-* aviation db retrievals are not supported atm
-* new verification db retrievals are not supported atm
-* fmisid numbers are not used atm, but only WMON numbers. fmisid numbers are needed for e.g.
+## (presumedly) most acute development needs
+1. New MOS db retrievals (Specifications at https://jira.fmi.fi/browse/STU-11582, db retrieval ticket at https://jira.fmi.fi/browse/STU-12895) need to be implemented to retrieval function retrieve_data_MOS.R
+2. In together with point one, implementation of parallel retrievals to MOS training data (https://jira.fmi.fi/browse/PDTK-5)
+3. Including of WS to estimated_variables list. Estimate either scalar quantities linearly (problem of zero-limited values) or U/V components as such (could be more easy estimated with ordinary linear regression), or including or more sophisticated fitting methods like RF (that would demand substantial changes to the operative implementation part of the model)
+4. fmisid numbers are not used atm, but only WMON numbers. fmisid numbers are needed for e.g.
   * roadweather stations
   * netatmo stations
   * Spain/Canary island stations
+
+
+## Some (but obviously not all!) longer-term development needs (in a loosely defined order of importance)
+* Sensitivity tests comparing different modeling strategies (like those at https://jira.fmi.fi/browse/POSSE-220) are missing from this code. They only exist for the legacy code located at (devmos / vorlon_point_legacy / Postgre_query_point_data_MOS_crossvalidation.R)
+* All CLDB retrievals are currently implemented through MOS db (liked table). These would need to be coded to retrieve_data_CLDB.R using Smartmet server interface. The related mapping lists would need to be added to all_variable_lists$mapping_parameters_all as well as create a retrieval that fetches all the unique parameter names that are used at the Smartmet Server interface (these are obviously different to CLDB names)
+* files toMOSutils_functions_glm.R and functions_fitting could be combined with each other in a neater way
+* purrr training method is currently implemented for model GlmR1 and not for any of the other methods available at toMOSutils_functions_glm.R
+* minimum sample size check is only implemented in function FitWithGlmnR1purrr!
 * max_variables parameter is not passed on the training functions!
 * fitting_algorithm is not passed on to function Train.Model(), but is manually defined in MOS_training()!
-* Implementation of parallel retrievals to MOS training data (https://jira.fmi.fi/browse/PDTK-5)
-* All CLDB retrievals are currently implemented through MOS db (liked table). These would need to be coded to retrieve_data_CLDB.R using Smartmet server interface.
-* New MOS db retrievals (Specifications at https://jira.fmi.fi/browse/STU-11582, db retrieval ticket at https://jira.fmi.fi/browse/STU-12895) need to be implemented to retrieve_data_MOS.R
-* db username+password is currently using Ylhäisi credentials from a local file at devmos (see load_libraries_tables_and_open_connections.R). A common group username should be used here.
-
-
+* new verification db (verificationdb) retrievals are not supported atm, even though group access to the db already exists
+* aviation db retrievals are not supported atm (see also https://jira.fmi.fi/browse/STU-13383)
+* automatic creation of corresponding local directories (../point_data_analysis/ and ../constant_lists/) while cloning repos (post-processing-mos-point-analysis and post-processing-constant_lists). That would be a really small script, but it is unknown where this would be best placed (inside either of these repos or completely elsewhere?)
+* mos_trace_v is not supported atm (it is also going to be obsolete soon)
