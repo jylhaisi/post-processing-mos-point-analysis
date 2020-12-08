@@ -58,11 +58,13 @@ R CMD BATCH Postgre_query_point_data.R Postgre_query_point_data.Rout
 * https://jira.fmi.fi/issues/?jql=project%20%3D%20POSSE%20AND%20statusCategory%20%3D%20Done%20order%20by%20updated%20DESC
 
 
-## (presumedly) most acute development needs
-1. New MOS db retrievals (Specifications at https://jira.fmi.fi/browse/STU-11582, db retrieval ticket at https://jira.fmi.fi/browse/STU-12895) need to be implemented to retrieval function retrieve_data_MOS.R
-2. In together with point one, implementation of parallel retrievals to MOS training data (https://jira.fmi.fi/browse/PDTK-5)
-3. Including of WS to estimated_variables list. Estimate either scalar quantities linearly (problem of zero-limited values) or U/V components as such (could be more easy estimated with ordinary linear regression), or including or more sophisticated fitting methods like RF (that would demand substantial changes to the operative implementation part of the model)
-4. fmisid numbers are not used atm, but only WMON numbers. fmisid numbers are needed for e.g.
+## (Presumedly) most acute development needs
+1. Include WS to estimated_variables list. Estimate either scalar quantities linearly (problem of zero-limited values) or U/V components as such (could be more easy estimated with ordinary linear regression), or including or more sophisticated fitting methods like RF (that would demand substantial changes to the operative implementation part of the model)
+2. New MOS db
+  * Re-write model data retrieval function retrieve_data_MOS.R, based on lat/lon values instead of "old" WMON number identification (Further specifications at https://jira.fmi.fi/browse/STU-11582, db retrieval ticket at https://jira.fmi.fi/browse/STU-12895)
+  * Parallel retrievals for the MOS training data might need to be written as direct retrievals likely take too much time (https://jira.fmi.fi/browse/PDTK-5)
+  * Implement new mapping lists to all_variable_lists, e.g. with name all_variable_lists$MOSgrid. New database contains several new parameters (also vertical model level values), the specifications on them + other database conventions can be found from https://wiki.fmi.fi/pages/viewpage.action?pageId=64690164 and https://apps.ecmwf.int/codes/grib/param-db?filter=All
+3. fmisid numbers are not used atm, but only WMON numbers. fmisid numbers are needed for e.g.
   * roadweather stations
   * netatmo stations
   * Spain/Canary island stations
