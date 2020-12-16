@@ -16,7 +16,7 @@ source("load_libraries_tables_and_open_connections.R")
 timestamps_series <- define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time(),"hours"),tz="GMT"),interval_in_hours=3,interval_in_seconds=NA,even_hours=TRUE) # define_time_series(begin_date=as.POSIXct("2011-12-01 00:00:00 GMT",tz="GMT"),end_date=with_tz(round.POSIXt(Sys.time()+864000,"hours"),tz="GMT"),interval_in_hours=3,interval_in_seconds=NA,even_hours=TRUE)
 modelobspairs_minimum_sample_size <- 100 # Arbitrary number here, could in principle also depend on the number of predictor variables
 date_string <- format(Sys.time(), "%d%m%y")
-mos_label <- paste0("MOS_ECMWF_020320") #paste0("MOS_ECMWF_",date_string) #
+mos_label <-  paste0("MOS_ECMWF_",date_string) # eg. mos_label <- paste0("MOS_ECMWF_020320") 
 predictor_set <- "only_bestvars3" #"only_bestvars2_no_climatology_ensmean" #"NA" #"allmodelvars_1prec_noBAD_RH2"
 derived_variables <- NA # c("Z_ORO","Z_850")  #c("RH_SURF","Z_850","GH_850")  # NA # c("DECLINATION")
 station_list <- "mos_stations_homogeneous_Europe" # Possible pre-defined station lists are those names in all_station_lists. If you want to use an arbitrary station list, assign the station numbers manually to variable station_numbers
@@ -42,10 +42,6 @@ variable_list_predictands_all <- variable_list_predictands <- choose_variables("
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables(c(predictor_set,derived_variables),"previ_ecmos_narrow_v","MOS"),choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"),choose_variables("5",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
 # variable_list_predictands_all <- variable_list_predictands <- rbind(choose_variables("estimated_variables","both","CLDB"),choose_variables(c("56","73"),"observation_data_v1","CLDB"),choose_variables(c("PSEA","WS","WD"),"weather_data_qc","CLDB"))
 # variable_list_predictors_all <- variable_list_predictors <- rbind(choose_variables("1",c("ecmwf","pal","kalmanecmwf","hirlam"),"verif"))
-
-
-
-
 
 # ##### EXAMPLE FOR RETRIEVING ONLY TEMPERATURE FROM VERIF DB (DMO) + CLDB (OBS)
 # # variable_list_retrieved <- rbind(choose_variables("TA","both","CLDB"),choose_variables("1",c("ecmwf","hirlam","gfs","meps","mosecmwf"),"verif"))
@@ -86,22 +82,22 @@ station_numbers_indices <- seq_len(length(station_numbers))
 variable_indices <- seq_len(length(variable_list_predictands[["variable_name"]]))
 
 ####TEMPORARY ROW####
-station_numbers_indices <- station_numbers_indices[station_numbers_indices >= 2160]
+#station_numbers_indices <- station_numbers_indices[station_numbers_indices >= 2160]
 
 for (station_number_index in station_numbers_indices) {
-  
+
   print(station_numbers[c(station_number_index)])
   
   # Assign original predictors/predictands
   variable_list_predictors <- variable_list_predictors_all
   variable_list_predictands <- variable_list_predictands_all
   
-  # # DEFINE THIS RESULT PART LATER, INSIDE THE FUNCTION THAT PRODUCES ACTUAL MOS COEFFICIENTS TO A FILE
-  # # This matrix contains metadata related to MOS training
+  # DEFINE THIS RESULT PART LATER, INSIDE THE FUNCTION THAT PRODUCES ACTUAL MOS COEFFICIENTS TO A FILE
+  # This matrix contains metadata related to MOS training
   # station_numbers_data_status <- station_numbers
   # station_numbers_data_status <- cbind(station_numbers_data_status, as.data.frame(matrix(0,ncol=35,nrow=length(station_numbers_data_status))))
   # names(station_numbers_data_status) <- c("wmon","havaintojen_pituus","havaintoja_paivassa","mallidatan_pituus","season1_00_ennustejaksoja","season1_00_min_otoskoko","season1_00_max_otoskoko","season1_00_mean_otoskoko","season1_12_ennustejaksoja","season1_12_min_otoskoko","season1_12_max_otoskoko","season1_12_mean_otoskoko","season2_00_ennustejaksoja","season2_00_min_otoskoko","season2_00_max_otoskoko","season2_00_mean_otoskoko","season2_12_ennustejaksoja","season2_12_min_otoskoko","season2_12_max_otoskoko","season2_12_mean_otoskoko","season3_00_ennustejaksoja","season3_00_min_otoskoko","season3_00_max_otoskoko","season3_00_mean_otoskoko","season3_12_ennustejaksoja","season3_12_min_otoskoko","season3_12_max_otoskoko","season3_12_mean_otoskoko","season4_00_ennustejaksoja","season4_00_min_otoskoko","season4_00_max_otoskoko","season4_00_mean_otoskoko","season4_12_ennustejaksoja","season4_12_min_otoskoko","season4_12_max_otoskoko","season4_12_mean_otoskoko")
-  # # Proceed if coefficients for that particular MOS version have not been calculated before this 
+  # Proceed if coefficients for that particular MOS version have not been calculated before this 
   # komento <- paste("tiedostot <- list.files(\"/media/ylhaisi/PURE/R_projects/vorlon_point_data/processed/MOS_coefficients/valmiit/",mos_label,"/\")",sep="")
   # eval(parse(text=komento))
   # rm(komento)
@@ -155,7 +151,6 @@ for (station_number_index in station_numbers_indices) {
   # Training linear model and saving coefficients to a file
   MOS_training(station_list_retrieved, obsdata, mosdata, max_variables, fitting_method, fitting_algorithm, station_type, output_dir)
     
-
 #       for (sel in variable_indices) {
 #           # SAVE DATA LENGTH LATER IN SCRIPT
 #           # Tallennetaan jälki, että havaintoja löytyy ainakin jotain
@@ -307,8 +302,6 @@ for (station_number_index in station_numbers_indices) {
 #   print(i)
 }
 rm(station_number_index)
-
-
 
 rm(con1)
 rm(con2)
